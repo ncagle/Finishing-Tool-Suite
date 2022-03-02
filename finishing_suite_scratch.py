@@ -8,10 +8,10 @@
     Python toolbox (.pyt) description and special instructions.
 '''
 
-# ==================== #
-# Finishing Tool v6    #
-# Nat Cagle 2021-10-04 #
-# ==================== #
+# ====================== #
+# Finishing Tool Scratch #
+# Nat Cagle 2022-03-01   #
+# ====================== #
 import arcpy
 from arcpy import AddMessage as write
 from datetime import datetime as dt
@@ -35,6 +35,13 @@ import math
 #   __(.)< ‾
 #~~~\___)~~~
 
+
+
+"""
+This is general testing ground and scratch code.
+I was using it to fiddle with progressors and migrating to a python toolbox.
+~NJC
+"""
 
 
 
