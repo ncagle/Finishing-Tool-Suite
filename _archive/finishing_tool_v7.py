@@ -1,5 +1,5 @@
 # ==================== #
-# Finishing Tool v6    #
+# Finishing Tool v7    #
 # Nat Cagle 2021-10-04 #
 # ==================== #
 import arcpy
@@ -1467,4 +1467,3 @@ if explode:
 # Easter Egg
 if not fcode and not defaults and not hydro and not trans and not util and not ufi and not dups and not metrics and not repair and not explode:
 	write("Kristen, click a check box and stop being cheeky.\n")
-
