@@ -37,6 +37,7 @@ import math
 # Defense mapping version takes too long and crashes. just rewrite with manual calculations
 # Error handling for feature classes used in integration not present in database
 # Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the input TDS. Just restart ArcMap and try again.
+# Pull local user profile name and add it to the "stop being cheeky" easter egg
 
 #####
 
@@ -50,7 +51,25 @@ import math
 
 #####
 
+# Write information for given variable
+def write_info(name,var): # write_info('var_name',var)
+	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	write("Debug info for {0}:".format(name))
+	write("   Variable Type: {0}".format(type(var)))
+	write("   Assigned Value: {0}".format(var))
+	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+# Gets messages from the ArcGIS tools ran and sends messages to dialog
+def writeresults():
+    messages = arcpy.GetMessages(0)
+    warnings = arcpy.GetMessages(1)
+    errors = arcpy.GetMessages(2)
+    write(messages)
+    if len(warnings) > 0:
+        write(warnings)
+    if len(errors) > 0:
+        write(errors)
+    return
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Global Dictionaries and Parameters #
@@ -2062,17 +2081,22 @@ while dups:
 				dup_count += rows
 		except arcpy.ExecuteError:
 			# if the code failed for the current fc, check the error
-			error_count += 1
-			os.remove(table_loc)
-			os.remove(table_loc + str(".xml"))
-			os.remove(path[0] + str(".cpg"))
-			os.remove(path[0] + str(".IN_FID.atx"))
+			#error_count += 1
+			try:
+				os.remove(table_loc)
+				os.remove(table_loc + str(".xml"))
+				os.remove(path[0] + str(".cpg"))
+				os.remove(path[0] + str(".IN_FID.atx"))
+			except:
+				pass
 			arcpy.RefreshCatalog(out_table)
-			write("\n***Failed to run {0}.***\n".format(tool_name))
+			write("\n***Failed to run {0} on {1}.***\n".format(tool_name, fc))
 			write("Error Report:")
 			write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 			write(arcpy.GetMessages())
 			write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+			write_info("out_table", out_table)
+			write_info("path", path)
 			write("\nPlease rerun the tool, but uncheck the {0} tool option. Either the feature class is too big or something else has gone wrong. Large data handling for tools other than Integration will be coming in a future update.".format(tool_name))
 			write("Exiting tool.\n")
 			sys.exit(0)
