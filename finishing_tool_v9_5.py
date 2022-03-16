@@ -1492,6 +1492,7 @@ write("Loaded {0} of 55 TDSv7.1 feature classes".format(len(featureclass)))
 
 # Checking for CACI schema cz they're "special" and have to make everything so fucking difficult
 caci_schema = False
+scale_name = 'scale'
 for fc in featureclass:
 	fc_zero = int(arcpy.GetCount_management(fc).getOutput(0))
 	if fc_zero == 0:
