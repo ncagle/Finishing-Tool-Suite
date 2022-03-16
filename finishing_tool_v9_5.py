@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ====================== #
-# Finishing Tool v9.5    #
-# Nat Cagle 2022-03-04   #
+# Finishing Tool v9.6    #
+# Nat Cagle 2022-03-16   #
 # ====================== #
 import arcpy
 from arcpy import AddMessage as write
@@ -1674,6 +1674,9 @@ while ufi:
 			with arcpy.da.UpdateCursor(fc, 'ufi') as ucursor:
 				for row in ucursor:
 					if not populated(row[0]):
+						row[0] = str(uuid.uuid4())
+						ufi_count += 1
+					elif len(row[0]) != 36: # 36 character random alphanumeric string
 						row[0] = str(uuid.uuid4())
 						ufi_count += 1
 					elif values.count(row[0]) > 1:
