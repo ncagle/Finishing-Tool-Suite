@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ====================== #
-# Finishing Tool v9.5    #
-# Nat Cagle 2022-03-04   #
+# Finishing Tool v9.6    #
+# Nat Cagle 2022-03-16   #
 # ====================== #
 import arcpy
 from arcpy import AddMessage as write
@@ -38,6 +38,7 @@ import math
 # Error handling for feature classes used in integration not present in database
 # Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the input TDS. Just restart ArcMap and try again.
 # Pull local user profile name and add it to the "stop being cheeky" easter egg
+# optional DisableEditorTracking_management (default true)
 
 #####
 
@@ -1491,12 +1492,16 @@ write("Loaded {0} of 55 TDSv7.1 feature classes".format(len(featureclass)))
 
 # Checking for CACI schema cz they're "special" and have to make everything so fucking difficult
 caci_schema = False
+scale_name = 'scale'
 for fc in featureclass:
 	fc_zero = int(arcpy.GetCount_management(fc).getOutput(0))
 	if fc_zero == 0:
 		continue
 	else:
 		field_check = arcpy.ListFields(fc)
+		for f in field_check:
+			if f == 'scale' or f == 'SCALE' or f == 'Scale' or f == 'sCaLe':
+				scale_name = f
 		field_check = [x.name.lower() for x in field_check]
 		#field_check = [x.decode('utf-8').lower() for x in field_check]
 		for f in field_check:
@@ -1669,6 +1674,9 @@ while ufi:
 			with arcpy.da.UpdateCursor(fc, 'ufi') as ucursor:
 				for row in ucursor:
 					if not populated(row[0]):
+						row[0] = str(uuid.uuid4())
+						ufi_count += 1
+					elif len(row[0]) != 36: # 36 character random alphanumeric string
 						row[0] = str(uuid.uuid4())
 						ufi_count += 1
 					elif values.count(row[0]) > 1:
@@ -2677,6 +2685,7 @@ while swap:
 	write("Swapping CTUU and Scale for {0}".format(gdb_name))
 	write("\nNote: The SAX_RX9 field will be changed from <NULL> to 'Scale Swapped' after the first swap. It will flip back and forth in subsequent runs.\nIf the tool was aborted on a previous run for some reason, it will reset all feature classes to the dominant swap format to maintain internal consistency. It is still up to the user to know which format they were swapping from. (Either Scale->CTUU or CTUU->Scale) Check the tool output for more information on which feature classes were changed.\n")
 	fields = ['zi026_ctuu', 'scale', 'swap', 'progress', 'sax_rx9']
+	fields[1] = str(scale_name)
 
 	# Explicit is better than implicit
 	populated = lambda x: x is not None and str(x).strip() != '' # Finds empty fields. See UFI process
@@ -2685,6 +2694,8 @@ while swap:
 	swap_fc = []
 	none_fc = []
 	empty_fc = []
+	chk_fields = ['sax_rx9', 'scale']
+	chk_fields[1] = str(scale_name)
 	clean_proceed = False
 	swap_dom = False
 	none_dom = False
@@ -2704,22 +2715,26 @@ while swap:
 		# 		break
 		# if swapchk:
 		# 	continue
-		with arcpy.da.SearchCursor(fc, ['sax_rx9']) as scursor:
+		with arcpy.da.SearchCursor(fc, chk_fields) as scursor:
 			for row in scursor:
 				if not populated(row[0]):
+					if not populated(row[1]):
+						continue
 					none_fc.append(str(fc))
 					break
 				if row[0] == 'Scale Swapped':
+					if not populated(row[1]):
+						continue
 					swap_fc.append(str(fc))
 					break
-	if not swap_fc or not none_fc:
+	if len(swap_fc) == 0 or len(none_fc) == 0:
 		clean_proceed = True
 	elif len(swap_fc) > len(none_fc):
 		swap_dom = True
 	elif len(swap_fc) < len(none_fc):
 		none_dom = True
 	if not clean_proceed:
-		write("\n***Previous run was flagged as aborted. Resetting all feature classes to previous format.***\n")
+		write("\n***Previous run was flagged. Resetting feature classes to previous format.***\n")
 		if swap_dom:
 			write("Majority of feature classes tagged as 'Scale Swapped'. Updating the following feature classes to match:")
 			write("\n".join(i for i in none_fc) + "\n")
