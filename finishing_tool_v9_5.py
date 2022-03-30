@@ -1554,6 +1554,9 @@ if defaults or metrics or explode:
 ''''''''' Repair All NULL Geometry '''''''''
 # Repairs all NULL geometries in each feature class
 #### rewrite with intersect geometry method to remove duplicate vertices and kickbacks
+# if input_shp is None:
+# write("{0} feature OID: {1} found with NULL geometry. Skipping transfer.".format(fc_strip, srow[-2]))
+# continue
 while repair:
 	tool_name = 'Repair All NULL Geometry'
 	write("\n--- {0} ---\n".format(tool_name))
@@ -1635,6 +1638,7 @@ while defaults:
 ''''''''' Calculate Metrics '''''''''
 # Calculates the metric values of the specified fields
 #### Defense mapping version takes too long and crashes. just rewrite with manual calculations
+# for line and polygon metrics, if area or length is tool small throw warning with output.
 while metrics:
 	tool_name = 'Calculate Metrics'
 	write("\n--- {0} ---\n".format(tool_name))
