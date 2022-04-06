@@ -1741,10 +1741,8 @@ while hydro:
 			feat_count = int(arcpy.GetCount_management("hc_scale").getOutput(0))
 			write("Integrating {0} {1} features and \n            {2} {3} features...".format(feat_count, fc1, srf_count, fc2))
 			if srf_count > 0:
-				arcpy.Integrate_management("hc_scale 1;hs_scale 2", "0.06 Meters")
 				arcpy.Integrate_management("hc_scale 1;hs_scale 2", "0.03 Meters")
 			else:
-				arcpy.Integrate_management('hc_scale', "0.06 Meters")
 				arcpy.Integrate_management('hc_scale', "0.03 Meters")
 			hfeat_count = feat_count + srf_count
 		except arcpy.ExecuteError:
@@ -1790,10 +1788,8 @@ while hydro:
 					write("Integrating {0} {1} features and\n            {2} {3} features in partition {4}...".format(feat_count, fc1, ssrf_count, fc2, row[0]))
 					hfeat_count = hfeat_count + feat_count + ssrf_count
 					if ssrf_count > 0:
-						arcpy.Integrate_management("hc_scale 1;hs_scale 2", "0.06 Meters")
 						arcpy.Integrate_management("hc_scale 1;hs_scale 2", "0.03 Meters")
 					elif feat_count > 0:
-						arcpy.Integrate_management('hc_scale', "0.06 Meters")
 						arcpy.Integrate_management('hc_scale', "0.03 Meters")
 					else:
 						continue
@@ -1851,10 +1847,8 @@ while trans:
 			feat_count = int(arcpy.GetCount_management("tgc_scale").getOutput(0))
 			write("Integrating {0} {1} features and\n            {2} Culvert points...".format(feat_count, fc2, cul_count))
 			if cul_count > 0:
-				arcpy.Integrate_management("tgp_scale 2;tgc_scale 1", "0.06 Meters")
 				arcpy.Integrate_management("tgp_scale 2;tgc_scale 1", "0.03 Meters")
 			else:
-				arcpy.Integrate_management("tgc_scale", "0.06 Meters")
 				arcpy.Integrate_management("tgc_scale", "0.03 Meters")
 			tfeat_count = feat_count + cul_count
 		except arcpy.ExecuteError:
@@ -1900,10 +1894,8 @@ while trans:
 					write("Integrating {0} {1} features and\n            {2} Culvert points in partition {3}...".format(feat_count, fc2, pcul_count, row[0]))
 					tfeat_count = tfeat_count + feat_count + pcul_count
 					if pcul_count > 0:
-						arcpy.Integrate_management("tgp_scale 2;tgc_scale 1", "0.06 Meters")
 						arcpy.Integrate_management("tgp_scale 2;tgc_scale 1", "0.03 Meters")
 					elif feat_count > 0:
-						arcpy.Integrate_management("tgc_scale", "0.06 Meters")
 						arcpy.Integrate_management("tgc_scale", "0.03 Meters")
 					else:
 						continue
@@ -1968,7 +1960,6 @@ while util:
 			feat_count2 = int(arcpy.GetCount_management("uc_scale").getOutput(0))
 			feat_count3 = int(arcpy.GetCount_management("us_scale").getOutput(0))
 			write("Integrating {0} {1} features,\n            {2} {3} features, and\n            {4} {5} features...".format(feat_count1, fc1, feat_count2, fc2, feat_count3, fc3))
-			arcpy.Integrate_management("up_scale 2;uc_scale 1;us_scale 3", "0.06 Meters")
 			arcpy.Integrate_management("up_scale 2;uc_scale 1;us_scale 3", "0.03 Meters")
 			ufeat_count = feat_count1 + feat_count2 + feat_count3
 		except arcpy.ExecuteError:
@@ -2013,7 +2004,6 @@ while util:
 					feat_count3 = int(arcpy.GetCount_management("us_scale").getOutput(0))
 					ufeat_count = ufeat_count + feat_count1 + feat_count2 + feat_count3
 					write("Integrating {0} {1} features,\n            {2} {3} features, and\n            {4} {5} features in partition {6}...".format(feat_count1, fc1, feat_count2, fc2, feat_count3, fc3, row[0]))
-					arcpy.Integrate_management("up_scale 2;uc_scale 1;us_scale 3", "0.06 Meters")
 					arcpy.Integrate_management("up_scale 2;uc_scale 1;us_scale 3", "0.03 Meters")
 			write("Freeing partition memory")
 			arcpy.Delete_management("in_memory")
