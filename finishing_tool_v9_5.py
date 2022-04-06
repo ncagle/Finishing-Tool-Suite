@@ -1708,6 +1708,12 @@ while ufi:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 ''''''''' Integrate and Repair '''''''''
+### Add integration of hydro VanishingPoints and NaturalPools
+### Major rework of logic behind integrate step.
+### Potentially do away with Integrate and make a few tools that just do the major things we need integrate to do
+###   - Run snap tool with low tolerance for helping keep certain features coincident.
+###   - Make a tool to add vertices at all feature intersections that don't have one already.
+###      This is one of the main things we use integrate for, but it might be a tall order
 # User choice to Integrate and Repair Hydrography curves, TransportationGround curves, or Utility points and surfaces to curves
 if hydro or trans or util:
 	tool_name = 'Integrate and Repair'
