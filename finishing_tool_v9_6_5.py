@@ -1715,8 +1715,7 @@ while ufi:
 ### Major rework of logic behind integrate step.
 ### Potentially do away with Integrate and make a few tools that just do the major things we need integrate to do
 ###   - Run snap tool with low tolerance for helping keep certain features coincident.
-###   - Make a tool to add vertices at all feature intersections that don't have one already.
-###      This is one of the main things we use integrate for, but it might be a tall order
+###   - Decrease the integrate tolerance to 0.02m. We used 0.03m for a while, but for older clients, we used to use 0.01m. So this splits the difference and should cut down on the duplicate vertices errors.
 # User choice to Integrate and Repair Hydrography curves, TransportationGround curves, or Utility points and surfaces to curves
 if hydro or trans or util:
 	tool_name = 'Integrate and Repair'
