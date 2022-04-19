@@ -1351,6 +1351,7 @@ vsource = arcpy.GetParameter(18)
 #sdepull = arcpy.GetParameter(19)
 #dataload = arcpy.GetParameter(20)
 secret = arcpy.GetParameter(19) ### update index as needed
+#loc_delux = arcpy.GetParameter(20)
 error_count = 0
 featureclass = arcpy.ListFeatureClasses()
 
@@ -1486,6 +1487,8 @@ if vogon:
 	if arcpy.Exists('StructureSrf'):
 		featureclass.remove('StructureSrf')
 	write("StructureSrf and StructurePnt will be skipped in processing")
+# if loc_delux:
+# 	featureclass = ['MilitaryPnt', 'StoragePnt', 'TransportationGroundPnt', 'UtilityInfrastructurePnt', 'MilitaryCrv', 'TransportationGroundCrv', 'UtilityInfrastructureCrv', 'FacilitySrf', 'MilitarySrf', 'StorageSrf', 'TransportationGroundSrf', 'UtilityInfrastructureSrf']
 featureclass.sort()
 write("Loaded {0} of 55 TDSv7.1 feature classes".format(len(featureclass)))
 
