@@ -1,0 +1,1 @@
+CreateObject("Wscript.Shell").Run "wmplayer /play /close ""C:\Users\njcagle\Downloads\WANGAN_RUN_Synthwave_Mix.mp3""", 0, False

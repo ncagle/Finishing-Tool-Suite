@@ -1140,7 +1140,7 @@ fc_fields = { 'AeronauticCrv' : ['f_code','fcsubtype','ara','axs','lzn','pcf','s
               'StructureCrv' : ['f_code','fcsubtype','bsu','hgt','lmc','lzn','pcf','wti','zi005_fna','zi006_mem','zi026_ctuu','zi001_srt','shape@','version'],
               'StructurePnt' : ['f_code','fcsubtype','bsu','crm','ffn','ffn2','ffn3','hgt','lmc','lzn','pcf','rle','tos','ttc','ttc2','ttc3','zi005_fna','zi006_mem','zi014_ppo','zi014_ppo2','zi014_ppo3','zi026_ctuu','zi037_rel','zi037_rfa','zi001_srt','shape@','version'],
               'StructureSrf' : ['f_code','fcsubtype','ara','bsu','ffn','ffn2','ffn3','hgt','lmc','lzn','pcf','rle','tos','ttc','ttc2','ttc3','wid','zi005_fna','zi006_mem','zi014_ppo','zi014_ppo2','zi014_ppo3','zi026_ctuu','zi037_rel','zi037_rfa','shape@','version'],
-              'TransportationGroundCrv' : ['f_code','fcsubtype','acc','bot','bsc','bsc2','bsc3','cat','cwt','fco','ffn','ffn2','ffn3','gtc','hgt','loc','ltn','lzn','mcc','mcc2','mcc3','mes','one','owo','pcf','rfd','rin_roi','rin_roi2','rin_roi3','rin_rtn','rin_rtn2','rin_rtn3','rle','ror','rrc','rrc2','rrc3','rsa','rta','rty','rwc','sbb','sep','tra','trp','trs','trs2','trs3','tst','wid','wle','zi005_fna','zi006_mem','zi016_roc','zi016_wd1','zi016_wtc','zi017_gaw','zi017_rgc','zi017_rir','zi017_rra','zi026_ctuu','zi001_srt','shape@','version'],
+              'TransportationGroundCrv' : ['f_code','fcsubtype','acc','bot','bsc','bsc2','bsc3','cat','cwt','fco','ffn','ffn2','ffn3','gtc','hgt','loc','ltn','lzn','mcc','mcc2','mcc3','mes','mwg','one','owo','pcf','rfd','rin_roi','rin_roi2','rin_roi3','rin_rtn','rin_rtn2','rin_rtn3','rle','ror','rrc','rrc2','rrc3','rsa','rta','rty','rwc','sbb','sep','thr','tra','trp','trs','trs2','trs3','tst','wid','wle','zi005_fna','zi006_mem','zi016_roc','zi016_wd1','zi016_wtc','zi017_gaw','zi017_rgc','zi017_rir','zi017_rra','zi026_ctuu','zi001_srt','shape@','version'],
               'TransportationGroundPnt' : ['f_code','fcsubtype','bot','bsc','bsc2','bsc3','cwt','dgc','ffn','ffn2','ffn3','gtc','hgt','lmc','mcc','mcc2','mcc3','mes','pcf','pym','rfd','rin_roi','rin_roi2','rin_roi3','rin_rtn','rin_rtn2','rin_rtn3','trp','trs','trs2','trs3','wid','zi005_fna','zi006_mem','zi016_roc','zi016_wtc','zi017_gaw','zi017_rgc','zi017_rra','zi026_ctuu','zi001_srt','shape@','version'],
               'TransportationGroundSrf' : ['f_code','fcsubtype','ara','bot','bsc','bsc2','bsc3','dgc','ffn','ffn2','ffn3','hgt','lmc','ltn','lzn','mcc','mcc2','mcc3','pcf','rfd','tra','trp','trs','trs2','trs3','vet','wid','wle','zi005_fna','zi006_mem','zi016_roc','zi017_gaw','zi017_rgc','zi017_rra','zi026_ctuu','zi001_srt','shape@','version'],
               'TransportationWaterCrv' : ['f_code','fcsubtype','aoo','cda','cwt','fer','hgt','lmc','loc','lzn','pcf','rle','sbb','trs','trs2','trs3','zi005_fna','zi006_mem','zi024_hyp','zi026_ctuu','zi001_srt','shape@','version'],
@@ -2834,6 +2834,9 @@ while fcount:
 	gdb_name_full = TDS.split('\\')[-2]
 	# Define fields for Search Cursor
 	fields = ["FCSubtype"]
+########
+## why was this put here? Why did I do this? had something to do with counting things and the remove buildings option.
+## Causes a crash when run on a PB4J database that doesn't have StructurePnts in it. Tries to open SearchCursor and can't
 	if not 'StructurePnt' in featureclass:
 		featureclass.append('StructurePnt')
 	if not 'StructureSrf' in featureclass:
