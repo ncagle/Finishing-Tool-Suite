@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-# ====================== #
-# Finishing Tool v9.7    #
-# Nat Cagle 2022-04-27   #
-# ====================== #
+# ║╚╔═╗╝║  │┌┘─└┐│  ▄█▀
+#╔══════════════════════════════╗#
+#║ Finishing Tool Suite ver 9.8 ║#
+#║   Nat Cagle & John Jackson   ║#
+#║    Last Edited 2022-05-09    ║#
+#╚══════════════════════════════╝#
+
 import arcpy as ap
 from arcpy import AddMessage as write
 from arcpy import AddFieldDelimiters as fieldDelim
 import datetime
 from datetime import datetime as dt
 from collections import OrderedDict
+from collections import namedtuple
 import pandas as pd
 import numpy as np
 import csv as cs
@@ -20,9 +24,11 @@ import math
 import traceback
 import re
 import imp
-
+import subprocess
 #import arc_dict as ad
 ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\FTX_source_dev\arc_dict.py")
+
+
 
 #            ________________________________
 #           | It does a whole bunch of stuff |
@@ -38,39 +44,61 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
 #   __(.)< ‾
 #~~~\___)~~~
 
+
+
+'''
+╔═════════════════╗
+║ Notes and To-Do ║
+╚═════════════════╝
+
+#### 4 hashtags in the code means things to be updated
+## 2 hashtags in the code means recent changes/updates
+
+#### Update Plans
+  - Make class for TDS properties like all variations of filepath and name
+  - Add option to choose scale to run on.
+  - Refactor tools to use in_memory workspace where possible to potentially speed up processing
+  - Rewrite default pylons and bridges to be general trans/hydro/utility attribution updater
+  - Defense Mapping extension is non-standard and certain computers have issues running those tools. Rewrite them around this limitation.
+  - Create function to partition data into chunks for smaller processing sets
+  - Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the
+	 input TDS. Just restart ArcMap and try again.
+  - Pull local user profile name and add it to the "stop being cheeky" easter egg. Create user whitelist and blacklist.
+  - Add dropdown with background music selection
+
+  - RefreshCatalog for main folder at start of run to evade NoneType error for new copies of databases that ArcMap can't find for dumb reasons
+  - Switch the order of Delete Identical Features and Hypernova Burst Multipart so that any kickback multiparts are exploded and then checked for duplicates. Apparently that's a thing that can happen in the data and needs to be checked for in this order.
+
+## Recent Changes
+  - Optional DisableEditorTracking_management (default true)
+  - More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
+
+
+Toolbox is running slow when everything is imported. All in one script 3000 lines and growing.
+I didn't want the individual tools cz I wanted the entire workflow to be accessible from one window
+What if each of the categories does have it's own tool if it needs to be run in particular without all
+the other options. But then the main Finishing Tool Suite is a Workflow Wrapper.
+So it imports the toolbox of itself and then calls the other tools in the toolbox as they are checked.
+This way, it stays sleek. Roundabout way of having tools as functions split up and importing them while
+still keeping it all in one toolbox without extra files
+
+
+'''
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
+
+'''
+╔═════════════════════════════════════════╗
+║ Dictionaries, Parameters, and Variables ║  Oh, my!
+╚═════════════════════════════════════════╝
+'''
+
 #----------------------------------------------------------------------
-
-# To Do List:
-#### 4 hashtags means things to be updated
-## 2 hashtags means recent changes/updates
-
-#### Make class for TDS properties like all variations of filepath and name
-
-#### Add option to choose scale to run on.
-
-# rewrite selections of default pylons and bridges and make new fc in memory for cursor
-# in memory upgrade
-# Defense mapping version takes too long and crashes. just rewrite with manual calculations
-# Error handling for feature classes used in integration not present in database
-# Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the input TDS. Just restart ArcMap and try again.
-# Pull local user profile name and add it to the "stop being cheeky" easter egg
-# optional DisableEditorTracking_management (default true)
-
-#####
-
-# Toolbox is running slow when everything is imported. All in one script 3000 lines and growing.
-# I didn't want the individual tools cz I wanted the entire workflow to be accessible from one window
-# What if each of the categories does have it's own tool if it needs to be run in particular without all
-# the other options. But then the main Finishing Tool Suite is a Workflow Wrapper.
-# So it imports the toolbox of itself and then calls the other tools in the toolbox as they are checked.
-# This way, it stays sleek. Roundabout way of having tools as functions split up and importing them while
-# still keeping it all in one toolbox without extra files
-
-#----------------------------------------------------------------------
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-# Global Dictionaries and Parameters #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
 # search dict_import
 	# fcode_dict
 		# { 'AB040' : 'AerationBasin', ...}
@@ -87,135 +115,143 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
 	# ffn_list_caci
 		# Same as above but the CACI specific version cz they just have to be different
 
-
-''''''''' User Parameters '''''''''
+#----------------------------------------------------------------------
+user = os.getenv('username')
 TDS = ap.GetParameterAsText(0)
 ap.env.workspace = TDS
-workspace = os.path.dirname(ap.env.workspace)
 ap.env.overwriteOutput = True
-secret = ap.GetParameterAsText(1) ### update index as needed
+#workspace = os.path.dirname(ap.env.workspace)
+#### Add these three to tool_list and tool_names?
+secret = ap.GetParameterAsText(1) # Password for Finishing easter egg
 vogon = ap.GetParameter(2) # Skips large building datasets
-disable = ap.GetParameter(3)
-
-
-tool_list = ap.GetParameter(4) + ap.GetParameter(5) + ap.GetParameter(6) + ap.GetParameter(7) + ap.GetParameter(8)
-write(tool_list)
-['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values', 'Integrate Hydrography Features', 'Integrate Transportation Features', 'Integrate Utility Features', 'Delete Identical Features', 'Hypernova Burst Multipart Features', 'Default Bridge WID Updater', 'Default Pylon HGT Updater', 'Building in BUA Descaler', 'CACI Swap Scale and CTUU', 'Database Feature Report', 'Source Analysis Report']
-
-repair = "Repair All NULL Geometries"
-fcode = "Populate F_Codes"
-defaults = "Calculate Default Values"
-metrics = "Calculate Metrics"
-ufi = "Update UFI Values"
-hydro = "Integrate Hydrography Features"
-trans = "Integrate Transportation Features"
-util = "Integrate Utility Features"
-dups = "Delete Identical Features"
-explode = "Hypernova Burst Multipart Features"
-bridge = "Default Bridge WID Updater"
-pylong = "Default Pylon HGT Updater"
-building = "Building in BUA Descaler"
-swap = "CACI Swap Scale and CTUU"
-fcount = "Database Feature Report"
-vsource = "Source Analysis Report"
-
-tool_list = ['Repair All NULL Geometries',
-    'Populate F_Codes',
-    'Calculate Metrics',
-    'Update UFI Values',
-    'Integrate Hydrography Features',
-    'Integrate Utility Features',
-    'Delete Identical Features',
-    'Hypernova Burst Multipart Features',
-    'Default Pylon HGT Updater',
-    'Building in BUA Descaler',
-    'Database Feature Report']
-
-bool_dict = OrderedDict([
-	(repair, False),
-	(fcode, False),
-	(defaults, False),
-	(metrics, False),
-	(ufi, False),
-	(hydro, False),
-	(trans, False),
-	(util, False),
-	(dups, False),
-	(explode, False),
-	(bridge, False),
-	(pylong, False),
-	(building, False),
-	(swap, False),
-	(fcount, False),
-	(vsource, False)
-])
-
-
-for key in bool_dict:
-    if key in tool_list:
-        bool_dict[key] = True
-    print("{0} : {1}".format(key, bool_dict[key]))
-
-for fc in featureclass:
-    for key in bool_dict:
-        if bool_dict[key]:
-            print("Running {0} on {1}".format(key, fc))
-
-
-
-
-
-# data_maintenance = ap.GetParameter(4)
-# integration = ap.GetParameter(5)
-# geometry_correction = ap.GetParameter(6)
-# preprocessing = ap.GetParameter(7)
-# database_management = ap.GetParameter(8)
-
-# Data Maintenance Tools: 'Repair All NULL Geometries';'Populate F_Codes';'Calculate Default Values';'Calculate Metrics';'Update UFI Values'
-# Integration Tools: 'Integrate Hydrography Features';'Integrate Transportation Features';'Integrate Utility Features'
-# Geometry Correction Tools: 'Delete Identical Features';'Hypernova Burst Multipart Features'
-# Preprocessing Tools:  'Default Bridge WID Updater'; 'Default Pylon HGT Updater'; 'Building in BUA Descaler'; 'CACI Swap Scale and CTUU'
-# Database Management Tools: 'Database Feature Report'; 'Source Analysis Report'
-
-# write_info('Data Maintenance Tools', data_maintenance)
-# write_info('Integration Tools', integration)
-# write_info('Geometry Correction Tools', geometry_correction)
-# write_info('Preprocessing Tools', preprocessing)
-# write_info('Database Management Tools', database_management)
-
-
-# repair = ap.GetParameter(4)
-# fcode = ap.GetParameter(5)
-# defaults = ap.GetParameter(6)
-# metrics = ap.GetParameter(7)
-# ufi = ap.GetParameter(8)
-# hydro = ap.GetParameter(9)
-# trans = ap.GetParameter(10)
-# util = ap.GetParameter(11)
-# dups = ap.GetParameter(12)
-# explode = ap.GetParameter(13)
-# bridge = ap.GetParameter(14)
-# pylong = ap.GetParameter(15)
-# building = ap.GetParameter(16) # Be sure to add Structure Srf and Pnt back if vogon is checked
-# swap = ap.GetParameter(17)
-# fcount = ap.GetParameter(18)
-# vsource = ap.GetParameter(19) # Michael here.
-#sdepull = ap.GetParameter(19)
-#dataload = ap.GetParameter(20)
+disable = ap.GetParameter(3) # Disables editor tracking
 
 #----------------------------------------------------------------------
+# Param(4) Data Maintenance Tools: ['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values']
+# Param(5) Integration Tools: ['Integrate Hydrography Features', 'Integrate Transportation Features', 'Integrate Utility Features']
+# Param(6) Geometry Correction Tools: ['Delete Identical Features', 'Hypernova Burst Multipart Features']
+# Param(7) Preprocessing Tools: ['Default Bridge WID Updater', 'Default Pylon HGT Updater', 'Building in BUA Descaler', 'CACI Swap Scale and CTUU']
+# Param(8) Database Management Tools: ['Database Feature Report', 'Source Analysis Report']
+tool_list = ap.GetParameter(4) + ap.GetParameter(5) + ap.GetParameter(6) + ap.GetParameter(7) + ap.GetParameter(8)
 
-""" General Functions """
+#----------------------------------------------------------------------
+name_class = namedtuple("name_class", "repair fcode defaults metrics ufi hydro trans util dups explode bridge pylong building swap fcount vsource")
+tool_names = name_class("Repair All NULL Geometries", "Populate F_Codes", "Calculate Default Values", "Calculate Metrics", "Update UFI Values", "Integrate Hydrography Features", "Integrate Transportation Features", "Integrate Utility Features", "Delete Identical Features", "Hypernova Burst Multipart Features", "Default Bridge WID Updater", "Default Pylon HGT Updater", "Building in BUA Descaler", "CACI Swap Scale and CTUU", "Database Feature Report", "Source Analysis Report")
 
+#----------------------------------------------------------------------
+bool_dict = OrderedDict([
+	(tool_names.repair, False),
+	(tool_names.fcode, False),
+	(tool_names.defaults, False),
+	(tool_names.metrics, False),
+	(tool_names.ufi, False),
+	(tool_names.hydro, False),
+	(tool_names.trans, False),
+	(tool_names.util, False),
+	(tool_names.dups, False),
+	(tool_names.explode, False),
+	(tool_names.bridge, False),
+	(tool_names.pylong, False),
+	(tool_names.building, False),
+	(tool_names.swap, False),
+	(tool_names.fcount, False),
+	(tool_names.vsource, False)
+])
+for key in (key for key in bool_dict.keys() if key in tool_list): bool_dict[key] = True # Iterate generator of tools in tool_list and set True
+
+#----------------------------------------------------------------------
+# Instantiate namedtuple results_holder class to store all the tool results for final printed outputs
+results = namedtuple("results_holder", "fcode_total ufi_total hfeat_total tfeat_total ufeat_total dup_total complex_total multi_total bridge_total remaining_bridge_total pylon_total remaining_pylon_total nonimportant_ffn_total point_total curve_total surface_total all_feats_total hydro_total trans_total building_total landcover_total bridge_error no_default_bridge pylong_error no_default_pylon building_error no_bua no_bua_buildings")
+# Can be set or reset all in one line like below
+#results = results_holder(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, False, False, False, False, False, False, False)
+#>>>results_holder(fcode_total=0, ufi_total=0, hfeat_total=0, tfeat_total=0, ufeat_total=0, dup_total=0, complex_total=0, multi_total=0, bridge_total=0, remaining_bridge_total=0, pylon_total=0, remaining_pylon_total=0, nonimportant_ffn_total=0, point_total=0, curve_total=0, surface_total=0, all_feats_total=0, hydro_total=0, trans_total=0, building_total=0, landcover_total=0, bridge_error=False, no_default_bridge=False, pylong_error=False, no_default_pylon=False, building_error=False, no_bua=False, no_bua_buildings=False)
+# If set with the oneliner, the following code syntax is needed to change values during runtime
+#results2 = results2._replace(fcode_total = 12432)
+# But instantiated as is, each attribute can just be dynamically updated
+#----------------------------------------------------------------------
+# Commented categories have been included below in case future result ouputs are added
+# Define defaults for all the result_holder attributes
+#----------------------------------------------------------------------
+''' Data Maintenance Tools '''
+#'Repair All NULL Geometries'
+results.fcode_total = 0
+#'Populate F_Codes'
+#'Calculate Default Values'
+#'Calculate Metrics'
+#'Update UFI Values'
+results.ufi_total = 0
+#----------------------------------------------------------------------
+''' Integration Tools '''
+#'Integrate Hydrography Features'
+results.hfeat_total = 0
+#'Integrate Transportation Features'
+results.tfeat_total = 0
+#'Integrate Utility Features'
+results.ufeat_total = 0
+#----------------------------------------------------------------------
+''' Geometry Correction Tools '''
+#'Delete Identical Features'
+results.dup_total = 0
+#'Hypernova Burst Multipart Features'
+results.complex_total = 0
+results.multi_total = 0
+#----------------------------------------------------------------------
+''' Preprocessing Tools '''
+#'Default Bridge WID Updater'
+results.bridge_total = 0
+results.remaining_bridge_total = 0
+results.bridge_error = False
+results.no_default_bridge = False
+#'Default Pylon HGT Updater'
+results.pylon_total = 0
+results.remaining_pylon_total = 0
+results.pylon_error = False
+results.no_default_pylon = False
+#'Building in BUA Descaler'
+results.nonimportant_ffn_total = 0
+results.building_error = False
+results.no_bua = False
+results.no_bua_buildings = False
+#'CACI Swap Scale and CTUU'
+#----------------------------------------------------------------------
+''' Database Management Tools '''
+#'Database Feature Report'
+results.point_total = 0
+results.curve_total = 0
+results.surface_total = 0
+results.all_feats_total = 0
+results.hydro_total = 0
+results.trans_total = 0
+results.building_total = 0
+results.landcover_total = 0
+#'Source Analysis Report'
+
+
+
+'''
+╔══════════════════════╗
+║ GDB Inspection Class ║
+╚══════════════════════╝
+'''
+
+# WIP
+
+
+
+'''
+╔═══════════════════╗
+║ General Functions ║
+╚═══════════════════╝
+'''
+
+#----------------------------------------------------------------------
 # Explicit is better than implicit
 # Lambda function works better than "if not fieldname:", which can falsely catch 0.
-populated = lambda x: x is not None and str(x).strip() != '' # Function that returns boolean of if input field is populated or empty
+populated = lambda x: x is not None and str(x).strip() != '' and x != -999999 # Function that returns boolean of if input field is populated or empty or default
 not_null = lambda x: x is not None
 is_null = lambda x: x is None
 
-def replace_list_value(existing, new, llist):
-	return list(map(lambda x: x.replace(existing, new), llist))
-
+#----------------------------------------------------------------------
 def write_info(name, var): # Write information for given variable
 	#write_info('var_name', var)
 	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -271,6 +307,7 @@ def runtime(start, finish): # Time a process or code block
 	time_elapsed = "{}:{:>02}:{:>05.4f}".format(h, m, s) # 00:00:00.0000
 	return time_elapsed
 
+#----------------------------------------------------------------------
 def make_field_list(dsc): # Construct a list of proper feature class fields
 	# Sanitizes Geometry fields to work on File Geodatabases or SDE Connections
 	#field_list = make_field_list(describe_obj)
@@ -283,6 +320,10 @@ def make_field_list(dsc): # Construct a list of proper feature class fields
 	field_list.append('SHAPE@')
 	return field_list
 
+def replace_list_value(existing, new, llist):
+	return list(map(lambda x: x.replace(existing, new), llist))
+
+#----------------------------------------------------------------------
 def add_row_tuple(add_row, index, val): # Adds new index in row tuple with specified value
 	# Reminder: The length of the row tuple has to match the target cursor to be applied
 	#for add_row in cursor:
@@ -313,24 +354,407 @@ def remove_row_tuple(rem_row, index): # Remove specified index from row tuple
 	rem_row.pop(index)
 	return tuple(rem_row)
 
+#----------------------------------------------------------------------
+def get_count(fc_layer): # Returns feature count
+	results = int(ap.GetCount_management(fc_layer).getOutput(0))
+	return results
+
+
+'''
+╔════════════════╗
+║ Tool Functions ║
+╚════════════════╝
+'''
+
+#----------------------------------------------------------------------
+def repair_geometry(featureclass):
+	repair_start = dt.now()
+	tool_name = 'Repair All NULL Geometry'
+	write("\n--- {0} ---\n".format(tool_name))
+	for fc in featureclass:
+		try:
+			write("Repairing NULL geometries in {0}".format(fc))
+			ap.RepairGeometry_management(fc, "DELETE_NULL")
+		except ap.ExecuteError:
+			writeresults(tool_name)
+	#ap.RepairBadGeometry_production(featureclass, 'REPAIR_ONLY', 'DELETE_NULL_GEOMETRY', '#') # Repair Bad Geometry Production Mapping tool
+	repair_finish = dt.now()
+	write("{0} finished in {1}".format(tool_name, runtime(repair_start, repair_finish)))
+
+#----------------------------------------------------------------------
+def populate_null(fc, field_list, default):
+	#populate_null(fc, string_fields, <'noInformation' or -999999>)
+	count = 0
+	with ap.da.UpdateCursor(fc, field_list) as ucursor:
+		#write("    Assigning domain defaults from coded values...")
+		for urow in ucursor: #for j, urow in enumerate(ucursor) where j+1 gives the row number
+			row_count = 0
+			if any(map(is_null, urow)):
+				for i, val in enumerate(urow):
+					if not_null(val):
+						continue
+					else:
+						urow = update_row_tuple(urow, i, default)
+						row_count +=1
+						count +=1
+			else:
+				continue
+			if row_count > 0:
+				ucursor.updateRow(urow)
+	return count
+
+def process_defaults(featureclass):
+	try:
+		count_nulls = 0
+		write("Constructing field type lists to match default values to domain definitions.")
+		for fc in featureclass:
+			out_fields = ['shape', 'area', 'length', 'created', 'edited', 'f_code', 'fcsubtype', 'ufi', 'version']
+			in_types = ['Double', 'Integer', 'Single', 'SmallInteger']
+			string_fields = [field.name for field in ap.ListFields(fc, None, 'String') if not any(substring in field.name.lower() for substring in out_fields)]
+			number_fields = [field.name for field in ap.ListFields(fc) if field.type in in_types and not any(substring in field.name.lower() for substring in out_fields)]
+			string_fields.sort()
+			number_fields.sort()
+			fc_nulls = 0
+			write("Locating NULL text and numeric fields in {0}".format(fc))
+			fc_nulls += populate_null(fc, string_fields, 'noInformation')
+			fc_nulls += populate_null(fc, number_fields, -999999)
+			if fc_nulls > 0:
+				write("  - {0} NULL values populated".format(fc_nulls))
+			count_nulls += fc_nulls
+		write('{0} total NULL values populated with default values'.format(count_nulls))
+	except ap.ExecuteError:
+		writeresults(tool_name)
+
+#----------------------------------------------------------------------
+# def dangling_orphans():
+# 	ap.DeleteDangles_production(inFeatures, "10 Feet", '#', 'NON_RECURSIVE', '45')
+# 	ap.RemoveCutbacks_production(roads, minimum_angle, "SEQUENTIAL", '#', 'IGNORE_SNAPPED_POINTS', '#')
+
+#----------------------------------------------------------------------
+def make_integrate_layers(name_list, tool_name):
+	#name_list = ['FeaturePnt', 'FeatureCrv', 'FeatureSrf', 'feat_pnt', 'feat_crv', 'feat_srf']
+	if not ap.Exists(name_list[0]):
+		write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[0]))
+		writeresults(tool_name)
+		if not ap.Exists(name_list[1]):
+			write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[1]))
+			writeresults(tool_name)
+			if not ap.Exists(name_list[2]):
+				write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[2]))
+				writeresults(tool_name)
+
+				write("- - - - - - - - - - - - - - - - - - - - - - ")
+				write(" ~ {0} ~ ".format(tool_name))
+				write("Making {0}, {1}, and {2} feature layers".format(name_list[0], name_list[1], name_list[2]))
+				if name_list[0] == 'UtilityInfrastructurePnt':
+					ap.MakeFeatureLayer_management(name_list[0], name_list[3], "f_code = 'AT042' AND zi026_ctuu >= 50000")
+				else:
+					ap.MakeFeatureLayer_management(name_list[0], name_list[3], "zi026_ctuu >= 50000")
+					if name_list[1] == 'UtilityInfrastructureCrv':
+						ap.MakeFeatureLayer_management(name_list[1], name_list[4], "f_code = 'AT005' AND zi026_ctuu >= 50000")
+					else:
+						ap.MakeFeatureLayer_management(name_list[1], name_list[4], "zi026_ctuu >= 50000")
+						ap.MakeFeatureLayer_management(name_list[2], name_list[5], "zi026_ctuu >= 50000")
+						write("Repairing {0} lines and {1} polygons before Integration".format(name_list[1], name_list[2]))
+						ap.RepairGeometry_management(name_list[4], "DELETE_NULL")
+						ap.RepairGeometry_management(name_list[5], "DELETE_NULL")
+
+def snap_lines_to_srf(lines, srf): #d     snap_srf__lines((((()))))
+	vertex_env = [srf, "VERTEX", "0.03 Meters"] # Snap lines to the nearest srf vertex within 0.03m
+	edge_env = [srf, "EDGE", "0.03 Meters"] # snap remaining lines to the nearest srf edge within 0.03m
+	ap.Snap_edit(lines, [vertex_env, edge_env])
+	ap.Integrate_management([[srf, 1], [lines, 2]]) # Integrate lines to srfs with default domain tolerance to create intersection vertices in them without morphing them and creating potential errors.
+	ap.RepairGeometry_management(srf, "DELETE_NULL")
+
+####snap points to lines at 0.1m tol to meet GAIT expectations
+def snap_points_to_lines(points, lines):
+	end_env = [lines, "END", "0.03 Meters"] # Snap points to the nearest line end node within 0.03m as priority over other vertices
+	vertex_env = [lines, "VERTEX", "0.03 Meters"] # Snap points to the nearest line vertex within 0.03m
+	edge_env = [lines, "EDGE", "0.03 Meters"] # snap remaining points to the nearest line edge within 0.03m
+	ap.Snap_edit(points, [end_env, vertex_env, edge_env])
+	ap.Integrate_management([[lines, 1], [points, 2]]) # Integrate points to lines with default domain tolerance to create intersection vertices in the lines without morphing them and creating potential errors.
+	ap.RepairGeometry_management(points, "DELETE_NULL")
+	ap.RepairGeometry_management(lines, "DELETE_NULL")
+
+def repair_and_clean(name_list):
+	write("Repairing {0} and {1} features after Integration".format(name_list[1], name_list[2]))
+	ap.RepairGeometry_management(name_list[4], "DELETE_NULL")
+	ap.RepairGeometry_management(name_list[5], "DELETE_NULL")
+	write("Clearing process cache")
+	ap.Delete_management(name_list[3])
+	ap.Delete_management(name_list[4])
+	ap.Delete_management(name_list[5])
+	write("- - - - - - - - - - - - - - - - - - - - - -")
+
+
+
+'''
+╔═════════════════════════════════════╗
+║ Royal Decree & Foundation Functions ║
+╚═════════════════════════════════════╝
+'''
+
+#----------------------------------------------------------------------
 def format_count(count): # format counts with the right amount of spacing for output report
 	cnt_str = str(count)
 	end_spacing = ""
 	if len(cnt_str) > 0:
 		for i in range(7-len(cnt_str)):
 			end_spacing += " "
-	else:
-		pass
 	return end_spacing
 
-def get_count(fc_layer): # Returns feature count
-    results = int(ap.GetCount_management(fc_layer).getOutput(0))
-    return results
+def format_name(name): # format counts with the right amount of spacing for output report
+	end_spacing = ''
+	for i in range(37-len(name)):
+		end_spacing += ' '
+	return end_spacing
+
+def royal_decree(ent_fin, gdb_name, tool_names, bool_dict, results, secret, vogon, disable, user):
+	# Tool title with GDB name formatting
+	write('')
+	slines = u'______________________________________'
+	sspaces = u'                                      '
+	exl = ''
+	exs = ''
+	exgl = '' # odd left dominant
+	exgr = ''
+	range_len = 38 - len(gdb_name)
+	if range_len > 0:
+		if (range_len % 2) == 0:
+			rn0 = range_len/2
+			for i in range(int(rn0)):
+				exgl += ' '
+				exgr += ' '
+		else:
+			rn1 = int(float(range_len)/2)
+			for i in range(rn1):
+				exgl += ' '
+			rn2 = rn1 + 1
+			for i in range(int(rn2)):
+				exgr += ' '
+	if len(gdb_name) > 38:
+		extra = len(gdb_name) - 38
+
+		for i in range(extra):
+			exl += '_'
+			exs += ' '
+
+	if ent_fin == 'Entrance':
+		# Report of requested tasks
+		write(u"   _____{0}{3}__\n / \\    {1}{4}  \\\n|   |   {1}{4}   |\n \\_ |   {1}{4}   |\n    |   {5}{2}{6}   |\n    |   {1}{4}   |".format(slines, sspaces, gdb_name, exl, exs, exgl, exgr))
+
+		if secret == 'Chairman Bock':
+			write(u"    |          By order of the Liberator         {0}|".format(exs))
+			write(u"    |        The leader of the free people       {0}|".format(exs))
+			write(u"    |      _______        _                      {0}|".format(exs))
+			write(u"    |     / ___/ /  ___ _(_)_____ _  ___ ____    {0}|".format(exs))
+			write(u"    |    / /__/ _ \/ _ `/ / __/  ' \/ _ `/ _ \   {0}|".format(exs))
+			write(u"    |    \___/_//_/\_,_/_/_/ /_/_/_/\_,_/_//_/   {0}|".format(exs))
+			write(u"    |               ___           __             {0}|".format(exs))
+			write(u"    |              / _ )___  ____/ /__           {0}|".format(exs))
+			write(u"    |             / _  / _ \/ __/  '_/           {0}|".format(exs))
+			write(u"    |            /____/\___/\__/_/\_\            {0}|".format(exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+			write(u"    |        The following Finishing tasks       {0}|".format(exs))
+			write(u"    |              shall be executed             {0}|".format(exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+
+		write(u"    |   ======  Processes  Initialized  ======   {0}|".format(exs))
+		write(u"    |   {0}   {1}|".format(sspaces, exs))
+
+		if bool_dict[tool_names.repair]:
+			write(u"    |     - Repair All NULL Geometries           {0}|".format(exs))
+		if bool_dict[tool_names.fcode]:
+			write(u"    |     - Populate F_Codes                     {0}|".format(exs))
+		if bool_dict[tool_names.defaults]:
+			write(u"    |     - Calculate Default Values             {0}|".format(exs))
+		if bool_dict[tool_names.metrics]:
+			write(u"    |     - Calculate Metrics                    {0}|".format(exs))
+		if bool_dict[tool_names.ufi]:
+			write(u"    |     - Update UFI Values                    {0}|".format(exs))
+		if bool_dict[tool_names.hydro] or bool_dict[tool_names.trans] or bool_dict[tool_names.util]:
+			write(u"    |     - Integrate and Repair:                {0}|".format(exs))
+			if bool_dict[tool_names.hydro]:
+				write(u"    |          Hydro                             {0}|".format(exs))
+			if bool_dict[tool_names.trans]:
+				write(u"    |          Trans                             {0}|".format(exs))
+			if bool_dict[tool_names.util]:
+				write(u"    |          Utilities                         {0}|".format(exs))
+		if bool_dict[tool_names.dups]:
+			write(u"    |     - Delete Identical Features            {0}|".format(exs))
+		if bool_dict[tool_names.explode]:
+			write(u"    |     - Hypernova Burst Multipart Features   {0}|".format(exs))
+		if bool_dict[tool_names.bridge]:
+			write(u"    |     - Default Bridge WID Updater           {0}|".format(exs))
+		if bool_dict[tool_names.pylong]:
+			write(u"    |     - Default Pylon HGT Updater            {0}|".format(exs))
+		if bool_dict[tool_names.building]:
+			write(u"    |     - Building in BUA Descaler             {0}|".format(exs))
+		if bool_dict[tool_names.swap]:
+			write(u"    |     - CACI Swap Scale and CTUU             {0}|".format(exs))
+		if bool_dict[tool_names.fcount]:
+			write(u"    |     - Generate Feature Report              {0}|".format(exs))
+		if bool_dict[tool_names.vsource]:
+			write(u"    |     - Generate Source Report               {0}|".format(exs))
+
+		write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))
+		write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
+		write("\n")
+
+	if ent_fin == 'Finale':
+		# Report of completed tasks
+		write(u"   _____{0}{3}__\n / \\    {1}{4}  \\\n|   |   {1}{4}   |\n \\_ |   {1}{4}   |\n    |   {5}{2}{6}{4}   |\n    |   {1}{4}   |".format(slines, sspaces, gdb_name, exl, exs, exgl, exgr))
+
+		# Easter Egg
+		if secret == 'Chairman Bock':
+			write(u"    |        Our great and powerful leader       {0}|".format(exs))
+			write(u"    |         The kind-hearted and caring        {0}|".format(exs))
+			write(u"    |      _______        _                      {0}|".format(exs))
+			write(u"    |     / ___/ /  ___ _(_)_____ _  ___ ____    {0}|".format(exs))
+			write(u"    |    / /__/ _ \/ _ `/ / __/  ' \/ _ `/ _ \   {0}|".format(exs))
+			write(u"    |    \___/_//_/\_,_/_/_/ /_/_/_/\_,_/_//_/   {0}|".format(exs))
+			write(u"    |               ___           __             {0}|".format(exs))
+			write(u"    |              / _ )___  ____/ /__           {0}|".format(exs))
+			write(u"    |             / _  / _ \/ __/  '_/           {0}|".format(exs))
+			write(u"    |            /____/\___/\__/_/\_\            {0}|".format(exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+			write(u"    |             Thanks you for your            {0}|".format(exs))
+			write(u"    |             outstanding service            {0}|".format(exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+
+		write(u"    |   =======  Processes  Completed  =======   {0}|".format(exs))
+		write(u"    |   {0}   {1}|".format(sspaces, exs))
+		if disable:
+			write(u"    |        ~ Editor Tracking DISABLED ~        {0}|".format(exs))
+		else:
+			write(u"    |   ** Editor Tracking is still ENABLED **   {0}|".format(exs))
+		if vogon:
+			write(u"    |     - Buildings skipped                    {0}|".format(exs))
+		if bool_dict[tool_names.repair]:
+			write(u"    |     - Repaired NULL Geometries             {0}|".format(exs))
+		if bool_dict[tool_names.fcode]:
+			f_fcode_total = format_count(results.fcode_total)
+			write(u"    |     - Populated F_Codes                    {0}|".format(exs))
+			write(u"    |          {0} F_Code errors fixed       {1}{2}|".format(results.fcode_total, f_fcode_total, exs))
+		if bool_dict[tool_names.defaults]:
+			write(u"    |     - Calculated Default Values            {0}|".format(exs))
+		if bool_dict[tool_names.metrics]:
+			write(u"    |     - Calculated Metrics                   {0}|".format(exs))
+		if bool_dict[tool_names.ufi]:
+			f_ufi_count = format_count(results.ufi_total)
+			write(u"    |     - Updated UFI Values                   {0}|".format(exs))
+			write(u"    |          {0} Duplicate or blank UFIs   {1}{2}|".format(results.ufi_total, f_ufi_count, exs))
+		if bool_dict[tool_names.hydro] or bool_dict[tool_names.trans] or bool_dict[tool_names.util]:
+			write(u"    |     - Integrated and Repaired:             {0}|".format(exs))
+			if bool_dict[tool_names.hydro]:
+				f_hfeat_count = format_count(results.hfeat_total)
+				write(u"    |          {0} Hydro                     {1}{2}|".format(results.hfeat_total, f_hfeat_count, exs))
+			if bool_dict[tool_names.trans]:
+				f_tfeat_count = format_count(results.tfeat_total)
+				write(u"    |          {0} Trans                     {1}{2}|".format(results.tfeat_total, f_tfeat_count, exs))
+			if bool_dict[tool_names.util]:
+				f_ufeat_count = format_count(results.ufeat_total)
+				write(u"    |          {0} Utilities                 {1}{2}|".format(results.ufeat_total, f_ufeat_count, exs))
+		if bool_dict[tool_names.dups]:
+			f_dup_count = format_count(results.dup_total)
+			write(u"    |     - Deleted Identical Features           {0}|".format(exs))
+			write(u"    |          {0} Duplicates found          {1}{2}|".format(results.dup_total, f_dup_count, exs))
+		if bool_dict[tool_names.explode]:
+			f_complex_count = format_count(results.complex_total)
+			f_multi_count = format_count(results.multi_total)
+			write(u"    |     - Hypernova Burst Multipart Features   {0}|".format(exs))
+			write(u"    |          {0} Complex features found    {1}{2}|".format(results.complex_total, f_complex_count, exs))
+			write(u"    |          {0} Features exploded         {1}{2}|".format(results.multi_total, f_multi_count, exs))
+		if bool_dict[tool_names.bridge]:
+			f_bridge_count = format_count(results.bridge_total)
+			f_total_rem_b = format_count(results.remaining_bridge_total)
+			write(u"    |     - Default Bridge WID Updater           {0}|".format(exs))
+			if bridge_error:
+				write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+				write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+			elif no_default_bridge:
+				write(u"    |          No default bridges found          {0}|".format(exs))
+			else:
+				write(u"    |          {0} Bridges updated           {1}{2}|".format(results.bridge_total, f_bridge_count, exs))
+				write(u"    |          {0} Defaults not updated      {1}{2}|".format(results.remaining_bridge_total, f_total_rem_b, exs))
+				write(u"    |          Check the output for more info    {0}|".format(exs))
+		if bool_dict[tool_names.pylong]:
+			f_lecount = format_count(results.pylon_total)
+			f_total_rem_p = format_count(results.remaining_pylon_total)
+			write(u"    |     - Default Pylon HGT Updater            {0}|".format(exs))
+			if pylon_error:
+				write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+				write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+			elif no_default_pylon:
+				write(u"    |          No default pylons found           {0}|".format(exs))
+			else:
+				write(u"    |          {0} Pylons updated            {1}{2}|".format(results.pylon_total, f_lecount, exs))
+				write(u"    |          {0} Defaults not updated      {1}{2}|".format(results.remaining_pylon_total, f_total_rem_p, exs))
+				write(u"    |          Check the output for more info    {0}|".format(exs))
+		if bool_dict[tool_names.building]:
+			f_total_non = format_count(results.nonimportant_ffn_total)
+			write(u"    |     - Building in BUA Descaler             {0}|".format(exs))
+			if building_error:
+				write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+				write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+			elif no_bua:
+				write(u"    |          No BUAs found                     {0}|".format(exs))
+			elif no_bua_buildings:
+				write(u"    |          No un-important buildings found   {0}|".format(exs))
+			else:
+				write(u"    |          {0} Buildings descaled        {1}{2}|".format(results.nonimportant_ffn_total, f_total_non, exs))
+				write(u"    |          Check the output for more info    {0}|".format(exs))
+		if bool_dict[tool_names.swap]:
+			write(u"    |     - CACI Swap Scale and CTUU             {0}|".format(exs))
+		if bool_dict[tool_names.fcount]:
+			f_pnt_cnt = format_count(results.point_total)
+			f_crv_cnt = format_count(results.curve_total)
+			f_srf_cnt = format_count(results.surface_total)
+			f_tots_f = format_count(results.all_feats_total)
+			f_hydro_cnt = format_count(results.hydro_total)
+			f_trans_cnt = format_count(results.trans_total)
+			f_building_cnt = format_count(results.building_total)
+			f_landcover_cnt = format_count(results.landcover_total)
+			write(u"    |     - Feature report generated             {0}|".format(exs))
+			write(u"    |          {0} Point Features            {1}{2}|".format(results.point_total, f_pnt_cnt, exs))
+			write(u"    |          {0} Curve Features            {1}{2}|".format(results.curve_total, f_crv_cnt, exs))
+			write(u"    |          {0} Surface Features          {1}{2}|".format(results.surface_total, f_srf_cnt, exs))
+			write(u"    |          {0} Total Features            {1}{2}|".format(results.all_feats_total, f_tots_f, exs))
+			write(u"    |          {0} Hydrography Features      {1}{2}|".format(results.hydro_total, f_hydro_cnt, exs))
+			write(u"    |          {0} Transportation Features   {1}{2}|".format(results.trans_total, f_trans_cnt, exs))
+			write(u"    |          {0} Buildings                 {1}{2}|".format(results.building_total, f_building_cnt, exs))
+			write(u"    |          {0} Landcover Surfaces        {1}{2}|".format(results.landcover_total, f_landcover_cnt, exs))
+			write(u"    |          Check the output for more info    {0}|".format(exs))
+		if bool_dict[tool_names.vsource]:
+			write(u"    |     - Source report generated              {0}|".format(exs))
+			write(u"    |          Check the output for more info    {0}|".format(exs))
+
+		# Easter Egg
+		if not bool_dict[tool_names.repair] and not bool_dict[tool_names.fcode] and not bool_dict[tool_names.defaults] and not bool_dict[tool_names.metrics] and not bool_dict[tool_names.ufi] and not bool_dict[tool_names.hydro] and not bool_dict[tool_names.trans] and not bool_dict[tool_names.util] and not bool_dict[tool_names.dups] and not bool_dict[tool_names.explode] and not bool_dict[tool_names.bridge] and not bool_dict[tool_names.pylong] and not bool_dict[tool_names.building] and not bool_dict[tool_names.swap] and not bool_dict[tool_names.fcount] and not bool_dict[tool_names.vsource]:
+			f_user = format_count(user)
+			write(u"    |   {0}   {1}|".format(sspaces, exs))
+			write(u"    |       {0}, click a check box and       {1}{0}|".format(user, f_user, exs))
+			write(u"    |             stop being cheeky.             {0}|".format(exs))
+
+		write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))
+		write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
+		write("\n")
+
+def background_music(start_stop):
+	if start_stop == 'start':
+		with open('tmp.vbs', 'w') as vbs_script:
+			vbs_script.write(r'CreateObject("Wscript.Shell").Run "wmplayer /play /close ""C:\Users\njcagle\Downloads\WANGAN_RUN_Synthwave_Mix.mp3""", 0, False')
+
+		subprocess.call('cscript tmp.vbs')
+		if os.path.exists('tmp.vbs'):
+			os.remove('tmp.vbs')
+
+	if start_stop == 'stop':
+		os.system("taskkill /im wmplayer.exe /t /f")
 
 #----------------------------------------------------------------------
-
-""" Tool Functions """
-
 def create_fc_list(vogon):
 	fc_list_start = dt.now()
 	featureclass = ap.ListFeatureClasses()
@@ -378,7 +802,9 @@ def snowflake_protocol(featureclass): # Checking for CACI schema cz they're "spe
 				write("Regular TDS schema identified in {0}".format(runtime(snowflake_start, snowflake_finish)))
 				return False
 
-def disable_editor_tracking(featureclass): # Automatically disables editor tracking for each feature class that doesn't already have it disabled
+def disable_editor_tracking(featureclass, gdb_name): # Automatically disables editor tracking for each feature class that doesn't already have it disabled
+	disable_start = dt.now()
+	write("\nDisabling Editor Tracking for {0}".format(gdb_name))
 	firstl = False
 	for fc in featureclass:
 		desc = ap.Describe(fc)
@@ -394,7 +820,10 @@ def disable_editor_tracking(featureclass): # Automatically disables editor track
 				pass
 	if firstl:
 		write("Editor Tracking has been disabled.")
-	return firstl
+	else:
+		write("Editor Tracking has already been disabled.")
+	disable_finish = dt.now()
+	write("Time to disable Editor Tracking: {0}".format(runtime(disable_start, disable_finish)))
 
 def check_defense(in_out, defaults, metrics, explode): # If any of the tools that require the Defense Mapping license are selected, check out the Defense license
 	if defaults or metrics or explode:
@@ -410,234 +839,125 @@ def check_defense(in_out, defaults, metrics, explode): # If any of the tools tha
 			else:
 				raise LicenseError
 		except LicenseError:
-		    write("Defense Mapping license is unavailable")
+			write("Defense Mapping license is unavailable")
 		except ap.ExecuteError:
-		    writeresults('check_defense')
-
-def populate_null(fc, field_list, default):
-	#populate_null(fc, string_fields, <'noInformation' or -999999>)
-	count = 0
-	with ap.da.UpdateCursor(fc, field_list) as ucursor:
-		#write("    Assigning domain defaults from coded values...")
-		for urow in ucursor: #for j, urow in enumerate(ucursor) where j+1 gives the row number
-			row_count = 0
-			if any(map(is_null, urow)):
-				for i, val in enumerate(urow):
-					if not_null(val):
-						continue
-					else:
-						urow = update_row_tuple(urow, i, default)
-						row_count +=1
-						count +=1
-			else:
-				continue
-			if row_count > 0:
-				ucursor.updateRow(urow)
-	return count
-
-def process_defaults(featureclass):
-	try:
-		count_nulls = 0
-		write("Constructing field type lists to match default values to domain definitions.")
-		for fc in featureclass:
-			out_fields = ['shape', 'area', 'length', 'created', 'edited', 'f_code', 'fcsubtype', 'ufi', 'version']
-			in_types = ['Double', 'Integer', 'Single', 'SmallInteger']
-			string_fields = [field.name for field in ap.ListFields(fc, None, 'String') if not any(substring in field.name.lower() for substring in out_fields)]
-			number_fields = [field.name for field in ap.ListFields(fc) if field.type in in_types and not any(substring in field.name.lower() for substring in out_fields)]
-			string_fields.sort()
-			number_fields.sort()
-			fc_nulls = 0
-			write("Locating NULL text and numeric fields in {0}".format(fc))
-			fc_nulls += populate_null(fc, string_fields, 'noInformation')
-			fc_nulls += populate_null(fc, number_fields, -999999)
-			if fc_nulls > 0:
-				write("  - {0} NULL values populated".format(fc_nulls))
-			count_nulls += fc_nulls
-		write('{0} total NULL values populated with default values'.format(count_nulls))
-	except ap.ExecuteError:
-		writeresults(tool_name)
-
-# def dangling_orphans():
-# 	ap.DeleteDangles_production(inFeatures, "10 Feet", '#', 'NON_RECURSIVE', '45')
-# 	ap.RemoveCutbacks_production(roads, minimum_angle, "SEQUENTIAL", '#', 'IGNORE_SNAPPED_POINTS', '#')
-
-def snap_lines_to_srf(lines, srf): #d     snap_srf__lines((((()))))
-	vertex_env = [srf, "VERTEX", "0.03 Meters"] # Snap lines to the nearest srf vertex within 0.03m
-	edge_env = [srf, "EDGE", "0.03 Meters"] # snap remaining lines to the nearest srf edge within 0.03m
-	ap.Snap_edit(lines, [vertex_env, edge_env])
-	ap.Integrate_management([[srf, 1], [lines, 2]]) # Integrate lines to srfs with default domain tolerance to create intersection vertices in them without morphing them and creating potential errors.
-	ap.RepairGeometry_management(srf, "DELETE_NULL")
-
-def snap_points_to_lines(points, lines):
-	end_env = [lines, "END", "0.03 Meters"] # Snap points to the nearest line end node within 0.03m as priority over other vertices
-	vertex_env = [lines, "VERTEX", "0.03 Meters"] # Snap points to the nearest line vertex within 0.03m
-	edge_env = [lines, "EDGE", "0.03 Meters"] # snap remaining points to the nearest line edge within 0.03m
-	ap.Snap_edit(points, [end_env, vertex_env, edge_env])
-	ap.Integrate_management([[lines, 1], [points, 2]]) # Integrate points to lines with default domain tolerance to create intersection vertices in the lines without morphing them and creating potential errors.
-	ap.RepairGeometry_management(points, "DELETE_NULL")
-	ap.RepairGeometry_management(lines, "DELETE_NULL")
-
-def make_integrate_layers(name_list, tool_name):
-	#name_list = ['FeaturePnt', 'FeatureCrv', 'FeatureSrf', 'feat_pnt', 'feat_crv', 'feat_srf']
-	if not ap.Exists(name_list[0]):
-		write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[0]))
-		writeresults(tool_name)
-	if not ap.Exists(name_list[1]):
-		write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[1]))
-		writeresults(tool_name)
-	if not ap.Exists(name_list[2]):
-		write("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[2]))
-		writeresults(tool_name)
-
-	write("- - - - - - - - - - - - - - - - - - - - - - ")
-	write(" ~ {0} ~ ".format(tool_name))
-	write("Making {0}, {1}, and {2} feature layers".format(name_list[0], name_list[1], name_list[2]))
-	if name_list[0] == 'UtilityInfrastructurePnt':
-		ap.MakeFeatureLayer_management(name_list[0], name_list[3], "f_code = 'AT042' AND zi026_ctuu >= 50000")
-	else:
-		ap.MakeFeatureLayer_management(name_list[0], name_list[3], "zi026_ctuu >= 50000")
-	if name_list[1] == 'UtilityInfrastructureCrv':
-		ap.MakeFeatureLayer_management(name_list[1], name_list[4], "f_code = 'AT005' AND zi026_ctuu >= 50000")
-	else:
-		ap.MakeFeatureLayer_management(name_list[1], name_list[4], "zi026_ctuu >= 50000")
-	ap.MakeFeatureLayer_management(name_list[2], name_list[5], "zi026_ctuu >= 50000")
-	write("Repairing {0} lines and {1} polygons before Integration".format(name_list[1], name_list[2]))
-	ap.RepairGeometry_management(name_list[4], "DELETE_NULL")
-	ap.RepairGeometry_management(name_list[5], "DELETE_NULL")
-
-def repair_and_clean(name_list):
-	write("Repairing {0} and {1} features after Integration".format(name_list[1], name_list[2]))
-	ap.RepairGeometry_management(name_list[4], "DELETE_NULL")
-	ap.RepairGeometry_management(name_list[5], "DELETE_NULL")
-	write("Clearing process cache")
-	ap.Delete_management(name_list[3])
-	ap.Delete_management(name_list[4])
-	ap.Delete_management(name_list[5])
-	write("- - - - - - - - - - - - - - - - - - - - - -")
+			writeresults('check_defense')
 
 
-#----------------------------------------------------------------------
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-# Title Formatting and Workspace Setup #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+      '''.          ,~~.          ,~~.          ,~~.          ,~~.
+     (  6 )-_,     (  6 )-_,     (  6 )-_,     (  6 )-_,     (  6 )-_,
+(\___ )=='-'  (\___ )=='-'  (\___ )=='-'  (\___ )=='-'  (\___ )=='-'
+ \ .   ) )     \ .   ) )     \ .   ) )     \ .   ) )     \ .   ) )
+  \ `-' /       \ `-' /       \ `-' /       \ `-' /       \ `-' /
+ ~'`~'`~'`~`~'`~'`~'`~'`~`~'`~'`~'`~'`~`~'`~'`~'`~'`~'`~`~'`~'`~'`~'`~
+              ..........................................
+			  :       ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄        :
+      ,~~.    :       █ ╔══════════════════╗= █        :      ,~~.
+     (  9 )-_,:       █ ║ >>> execute(     ║  █        :     (  9 )-_,
+(\___ )=='-'  :       █ ║     __main__     ║  █        :(\___ )=='-'
+ \ .   ) )    :       █ ║     )            ║o █        : \ .   ) )
+  \ `-' /     :       █ ╚══════════════════╝o █        :  \ `-' /
+ ~'`~'`~'`~`~ :       ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀        : ~'`~'`~'`~'`~
+              :........................................:
+      ,~~.          ,~~.          ,~~.          ,~~.          ,~~.
+     (  6 )-_,     (  6 )-_,     (  6 )-_,     (  6 )-_,     (  6 )-_,
+(\___ )=='-'  (\___ )=='-'  (\___ )=='-'  (\___ )=='-'  (\___ )=='-'
+ \ .   ) )     \ .   ) )     \ .   ) )     \ .   ) )     \ .   ) )
+  \ `-' /       \ `-' /       \ `-' /       \ `-' /       \ `-' /
+ ~'`~'`~'`~`~'`~'`~'`~'`~`~'`~'`~'`~'`~`~'`~'`~'`~'`~`~'`~'`~'`~'`~'''
+
+# WIP
+
+
+
+'''
+╔════════════════════════════╗
+║ Grand Entrance & Foundation║
+╚════════════════════════════╝
+'''
 
 # Sanitizing GDB name
 gdb_name = re.findall(r"[\w']+", os.path.basename(os.path.split(TDS)[0]))[0]
-rresults = os.path.split(os.path.split(TDS)[0])[0]
+gdb_folder = os.path.split(os.path.split(TDS)[0])[0]
 
-# Tool title with GDB name formatting
-write("")
-slines = u"______________________________________"
-sspaces = u"                                      "
-exl = ""
-exs = ""
-exgl = "" # odd left dominant
-exgr = ""
-range_len = 38 - len(gdb_name)
-if range_len > 0:
-	if (range_len % 2) == 0:
-		rn0 = range_len/2
-		for i in range(int(rn0)):
-			exgl += " "
-			exgr += " "
-	else:
-		rn1 = int(float(range_len)/2)
-		for i in range(rn1):
-			exgl += " "
-		rn2 = rn1 + 1
-		for i in range(int(rn2)):
-			exgr += " "
-if len(gdb_name) > 38:
-	extra = len(gdb_name) - 38
-
-	for i in range(extra):
-		exl += "_"
-		exs += " "
-
-# Report of requested tasks
-write(u"   _____{0}{3}__\n / \\    {1}{4}  \\\n|   |   {1}{4}   |\n \\_ |   {1}{4}   |\n    |   {5}{2}{6}   |\n    |   {1}{4}   |".format(slines, sspaces, gdb_name, exl, exs, exgl, exgr))
-
-if secret == 'Chairman Bock':
-	write(u"    |          By order of the Liberator         {0}|".format(exs))
-	write(u"    |        The leader of the free people       {0}|".format(exs))
-	write(u"    |      _______        _                      {0}|".format(exs))
-	write(u"    |     / ___/ /  ___ _(_)_____ _  ___ ____    {0}|".format(exs))
-	write(u"    |    / /__/ _ \/ _ `/ / __/  ' \/ _ `/ _ \   {0}|".format(exs))
-	write(u"    |    \___/_//_/\_,_/_/_/ /_/_/_/\_,_/_//_/   {0}|".format(exs))
-	write(u"    |               ___           __             {0}|".format(exs))
-	write(u"    |              / _ )___  ____/ /__           {0}|".format(exs))
-	write(u"    |             / _  / _ \/ __/  '_/           {0}|".format(exs))
-	write(u"    |            /____/\___/\__/_/\_\            {0}|".format(exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	write(u"    |        The following Finishing tasks       {0}|".format(exs))
-	write(u"    |              shall be executed             {0}|".format(exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-
-write(u"    |   ======  Processes  Initialized  ======   {0}|".format(exs))
-write(u"    |   {0}   {1}|".format(sspaces, exs))
-if repair:
-	write(u"    |     - Repair All NULL Geometries           {0}|".format(exs))
-if fcode:
-	write(u"    |     - Populate F_Codes                     {0}|".format(exs))
-if defaults:
-	write(u"    |     - Calculate Default Values             {0}|".format(exs))
-if metrics:
-	write(u"    |     - Calculate Metrics                    {0}|".format(exs))
-if ufi:
-	write(u"    |     - Update UFI Values                    {0}|".format(exs))
-if hydro or trans or util:
-	write(u"    |     - Integrate and Repair:                {0}|".format(exs))
-	if hydro:
-		write(u"    |          Hydro                             {0}|".format(exs))
-	if trans:
-		write(u"    |          Trans                             {0}|".format(exs))
-	if util:
-		write(u"    |          Utilities                         {0}|".format(exs))
-if dups:
-	write(u"    |     - Delete Identical Features            {0}|".format(exs))
-if explode:
-	write(u"    |     - Hypernova Burst Multipart Features   {0}|".format(exs))
-if bridge:
-	write(u"    |     - Default Bridge WID Updater           {0}|".format(exs))
-if pylong:
-	write(u"    |     - Default Pylon HGT Updater            {0}|".format(exs))
-if building:
-	write(u"    |     - Building in BUA Descaler             {0}|".format(exs))
-if swap:
-	write(u"    |     - CACI Swap Scale and CTUU             {0}|".format(exs))
-if fcount:
-	write(u"    |     - Generate Feature Report              {0}|".format(exs))
-if vsource:
-	write(u"    |     - Generate Source Report               {0}|".format(exs))
-
-write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))
-write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
-write("\n")
-
-#----------------------------------------------------------------------
-
+royal_decree('Entrance', gdb_name, bool_dict, results, secret, vogon, disable, user)
+background_music('start')
 featureclass = create_fc_list(vogon)
 caci_schema = snowflake_protocol(featureclass)
 if disable:
-	disable_start = dt.now()
-	write("\nDisabling Editor Tracking for {0}".format(gdb_name))
-	if not disable_editor_tracking(featureclass):
-		write("Editor Tracking has already been disabled.")
-	disable_finish = dt.now()
-	write("Time to disable Editor Tracking: {0}".format(runtime(disable_start, disable_finish)))
+	disable_editor_tracking(featureclass, gdb_name)
 check_defense('out', defaults, metrics, explode)
 where_scale = "zi026_ctuu >= 50000" #### Add option to specify what scale and up to run the tool on.
 
-#for fc in featureclass:
-	#do all the things
-	#can now modify the list of classes to work on easier.
 
-#----------------------------------------------------------------------
+
+'''
+╔═════════════════╗
+║ Tool Executions ║
+╚═════════════════╝
+'''
+
+	if bool_dict[tool_names.repair]:
+		tool_function()
+	if bool_dict[tool_names.fcode]:
+		tool_function()
+	if bool_dict[tool_names.defaults]:
+		tool_function()
+	if bool_dict[tool_names.metrics]:
+		tool_function()
+	if bool_dict[tool_names.ufi]:
+		tool_function()
+	if bool_dict[tool_names.hydro]:
+		tool_function()
+	if bool_dict[tool_names.trans]:
+		tool_function()
+	if bool_dict[tool_names.util]:
+		tool_function()
+	if bool_dict[tool_names.dups]:
+		tool_function()
+	if bool_dict[tool_names.explode]:
+		tool_function()
+	if bool_dict[tool_names.bridge]:
+		tool_function()
+	if bool_dict[tool_names.pylong]:
+		tool_function()
+	if bool_dict[tool_names.building]:
+		tool_function()
+	if bool_dict[tool_names.swap]:
+		tool_function()
+	if bool_dict[tool_names.fcount]:
+		tool_function()
+	if bool_dict[tool_names.vsource]:
+		tool_function()
+
+
+
+'''
+╔════════════════════════╗
+║ Grand Finale & Wrap Up ║
+╚════════════════════════╝
+'''
+
+check_defense('in', defaults, metrics, explode)
+royal_decree('Finale', gdb_name, tool_names, bool_dict, results, secret, vogon, disable, user)
+background_music('stop')
+
+
+
+
+
+
+
+
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Data Maintenance Tools Category   #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 ''''''''' Repair All NULL Geometry '''''''''
 # Repairs all NULL geometries in each feature class
 #### rewrite with intersect geometry method to remove duplicate vertices and kickbacks
@@ -659,7 +979,7 @@ while repair:
 	write("{0} finished in {1}".format(tool_name, runtime(repair_start, repair_finish)))
 	break
 
-
+#----------------------------------------------------------------------
 ''''''''' Populate F_Codes '''''''''
 ## Added 50k+ restriction
 # John Jackson's Fcode tool refactored from standalone with included dictionaries instead of imported
@@ -691,7 +1011,7 @@ while fcode:
 
 #Populate F_Codes fixed 675 total F_Code errors in 0:00:6.9260
 
-
+#----------------------------------------------------------------------
 ''''''''' Calculate Default Values '''''''''
 #### make 50k+ restriction in function
 # Calculate default values for NULL attributes
@@ -709,7 +1029,7 @@ while defaults:
 #default2 finished in 0:01:25.0860
 #Calculate Default Values finished in 0:01:18.5650
 
-
+#----------------------------------------------------------------------
 ''''''''' Calculate Metrics '''''''''
 # Calculates the metric values of the specified fields
 ## Only run on Polygon ARA and Polyline LZN
@@ -738,7 +1058,7 @@ while metrics:
 
 #Calculate Metrics finished in 0:02:28.6500
 
-
+#----------------------------------------------------------------------
 ''''''''' Update UFI Values '''''''''
 ## Only populates blanks, duplicates, or incorrect values such as 'noInformation'
 ## Added 50k+ restriction
@@ -776,11 +1096,12 @@ while ufi:
 #Update UFI Values updated 149134 invalid or missing UFI values in 0:00:29.7570
 
 
-#----------------------------------------------------------------------
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Integration Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 ''''''''' Integrate and Repair '''''''''
 ## Removed layered integration and dropped tolerance to 0.02m
 ## Moved Integrate Large Datasets option to backend. It is now default since it runs faster regardless.
@@ -801,7 +1122,7 @@ while hydro:
 	hydro_crv = hydro_list[4]
 	hydro_srf = hydro_list[5]
 	make_integrate_layers(hydro_list, tool_name)
-	hfeat_count = 0
+	hfeat_total = 0
 
 	try:
 		#Create Fishnet
@@ -809,7 +1130,9 @@ while hydro:
 		mem_fc = "in_memory\\{0}_grid".format(hydro_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "")
+		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+			break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -831,7 +1154,7 @@ while hydro:
 				pnt_count = get_count(hydro_pnt)
 				crv_count = get_count(hydro_crv)
 				srf_count = get_count(hydro_srf)
-				hfeat_count = hfeat_count + pnt_count + crv_count + srf_count
+				hfeat_total = hfeat_total + pnt_count + crv_count + srf_count
 				write("Integrating {0} {1} features,\n            {2} {3} features, and\n            {4} {5} features in partition {6}...".format(pnt_count, hydro_list[0], crv_count, hydro_list[1], srf_count, hydro_list[2], row[0]))
 				if crv_count > 0 and srf_count > 0:
 					snap_lines_to_srf(hydro_crv, hydro_srf)
@@ -859,7 +1182,7 @@ while trans:
 	trans_crv = trans_list[4]
 	trans_srf = trans_list[5]
 	make_integrate_layers(trans_list, tool_name)
-	tfeat_count = 0
+	tfeat_total = 0
 
 	try:
 		#Create Fishnet
@@ -867,7 +1190,9 @@ while trans:
 		mem_fc = "in_memory\\{0}_grid".format(trans_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		ap.MinimumBoundingGeometry_management(trans_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "")
+		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+			break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -889,7 +1214,7 @@ while trans:
 				pnt_count = get_count(trans_pnt)
 				crv_count = get_count(trans_crv)
 				srf_count = get_count(trans_srf)
-				tfeat_count = tfeat_count + pnt_count + crv_count + srf_count
+				tfeat_total = tfeat_total + pnt_count + crv_count + srf_count
 				write("Integrating {0} {1} features,\n            {2} {3} features, and\n            {4} {5} features in partition {6}...".format(pnt_count, trans_list[0], crv_count, trans_list[1], srf_count, trans_list[2], row[0]))
 				if crv_count > 0 and srf_count > 0:
 					snap_lines_to_srf(trans_crv, trans_srf)
@@ -916,7 +1241,7 @@ while util:
 	util_crv = util_list[4]
 	util_srf = util_list[5]
 	make_integrate_layers(util_list, tool_name)
-	ufeat_count = 0
+	ufeat_total = 0
 
 	try:
 		#Create Fishnet
@@ -924,7 +1249,9 @@ while util:
 		mem_fc = "in_memory\\{0}_grid".format(util_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		ap.MinimumBoundingGeometry_management(util_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "")
+		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+			break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -946,7 +1273,7 @@ while util:
 				pnt_count = get_count(util_pnt)
 				crv_count = get_count(util_crv)
 				srf_count = get_count(util_srf)
-				ufeat_count = ufeat_count + pnt_count + crv_count + srf_count
+				ufeat_total = ufeat_total + pnt_count + crv_count + srf_count
 				write("Integrating {0} {1} features,\n            {2} {3} features, and\n            {4} {5} features in partition {6}...".format(pnt_count, util_list[0], crv_count, util_list[1], srf_count, util_list[2], row[0]))
 				if crv_count > 0 and srf_count > 0:
 					snap_lines_to_srf(util_crv, util_srf)
@@ -966,11 +1293,12 @@ while util:
 	break
 
 
-#----------------------------------------------------------------------
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Geometry Correction Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 ''''''''' Delete Identical Features '''''''''
 # Checks for features with identical geometry and PSG attribution and removes them
 #### Test rewritten find identical code and replace existing
@@ -979,10 +1307,10 @@ while dups:
 	tool_name = 'Delete Identical Features'
 	write("\n--- {0} ---\n".format(tool_name))
 	out_table = os.path.dirname(TDS) # Output directory for Find Identical # C:/Projects/njcagle/S1_C09C_20210427.gdb
-	path = os.path.join(rresults, gdb_name) # Output dBASE table location # C:/Projects/njcagle/S1_C09C_20210427
+	path = os.path.join(gdb_folder, gdb_name) # Output dBASE table location # C:/Projects/njcagle/S1_C09C_20210427
 	table_loc = "{0}.dbf".format(path) # C:/Projects/njcagle/R&D/__Thunderdome/S1_C09C_20210427.dbf
 	write("Creating temporary output files:\n    - {0}.dbf\n    - {0}.dbf.xml\n    - {0}.cpg\n    - {0}.IN_FID.atx".format(gdb_name))
-	dup_count = 0
+	dup_total = 0
 
 	for fc in featureclass: # Loop feature classes and FindIdentical to get a count, then delete any found
 		try:
@@ -993,7 +1321,7 @@ while dups:
 			if rows > 0:
 				ap.DeleteIdentical_management(fc, dick)
 				write("  - Deleted {0} duplicate features.".format(rows))
-				dup_count += rows
+				dup_total += rows
 		except ap.ExecuteError:
 			if os.path.exists("{0}.dbf".format(path)): os.remove("{0}.dbf".format(path))
 			if os.path.exists("{0}.dbf.xml".format(path)): os.remove("{0}.dbf.xml".format(path))
@@ -1008,7 +1336,7 @@ while dups:
 	os.remove("{0}.IN_FID.atx".format(path))
 	ap.RefreshCatalog(out_table)
 	dups_finish = dt.now()
-	write("{0} removed {1} duplicates in {2}".format(tool_name, dup_count, runtime(dups_start, dups_finish)))
+	write("{0} removed {1} duplicates in {2}".format(tool_name, dup_total, runtime(dups_start, dups_finish)))
 	break
 
 	# ##### check Shape vs shape@ and add xy-tolerance to find and delete identical
@@ -1027,7 +1355,7 @@ while dups:
 	# 			atuple = ptGeometry.angleAndDistanceTo(ptGeometry2, "GEODESIC")
 	# 			atuple == (angle in degrees, distance in meters)
 
-
+#----------------------------------------------------------------------
 ''''''''' Hypernova Burst Multipart Features '''''''''
 ## Added 50k+ restriction
 # Explodes multipart features for an entire dataset
@@ -1039,8 +1367,8 @@ while explode:
 	##### Multipart Search #####
 	fc_multi = OrderedDict() # Create empty dictionary for lists of mulitpart feature OIDs for each feature class that has multiparts
 	fc_multi_list = []
-	total_multi = 0
-	total_complex = 0
+	multi_total = 0
+	complex_total = 0
 	og_oid = 'og_oid'
 	multi_search_fields = ['og_oid', 'OID@', 'SHAPE@']
 	for fc in featureclass:
@@ -1071,7 +1399,7 @@ while explode:
 							else: # If the part count is not greater than 1, then it is a complex single part feature with interior rings
 								complex_count += 1
 					if complex_count > 0:
-						total_complex += complex_count
+						complex_total += complex_count
 						write("    {0} complex polygons found".format(complex_count))
 				else:
 					for urow in ucursor: # For each feature in the fc
@@ -1086,7 +1414,7 @@ while explode:
 							urow[-3] = oid # Non-polygon feature geometries do not have the isMultipart flaw since they have fewer dimensions. Simply proceed as normal
 							ucursor.updateRow(urow)
 			if multi_count > 0:
-				total_multi += multi_count
+				multi_total += multi_count
 				write("\n    *** {0} true multipart features found! ***".format(multi_count))
 				##### Isolate, Explode, Replace #####
 				in_class = "multi"
@@ -1151,10 +1479,10 @@ while explode:
 		except ap.ExecuteError:
 			writeresults(tool_name)
 	write(" ")
-	if total_complex > 0:
-		write("The {0} complex polygons found are singlepart polygons with complex interior holes that are more likely to become multipart features.".format(total_complex))
+	if complex_total > 0:
+		write("The {0} complex polygons found are singlepart polygons with complex interior holes that are more likely to become multipart features.".format(complex_total))
 	write(" ")
-	if total_multi > 0: # Only runs if fc_multi is not empty
+	if multi_total > 0: # Only runs if fc_multi is not empty
 		for key in fc_multi:
 			write("{0} multipart features found in {1}".format(len(fc_multi[key]), key))
 			write("  OIDs - {0}".format(fc_multi[key]))
@@ -1255,30 +1583,31 @@ while explode:
 	break
 
 
-#----------------------------------------------------------------------
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Preprocessing Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 ''''''''' Default Bridge WID Updater '''''''''
 ## Added 50k+ restriction
 # Checks for bridges with default WID (-999999) and updates them to match the underlying road or rail WID
 while bridge:
-	bridge_err = False
-	no_def_bridge = False
-	bridge_count = 0
-	total_rem_b = 0
+	bridge_error = False
+	no_default_bridge = False
+	bridge_total = 0
+	remaining_bridge_total = 0
 	tool_name = 'Default Bridge WID Updater'
 	write("\n--- {0} ---\n".format(tool_name))
 	if not ap.Exists('TransportationGroundCrv'):
 		write("TransportationGroundCrv feature class missing./nCannot run Default Bridge WID Updater.")
-		bridge_err = True
+		bridge_error = True
 		break
 	break
 
 while bridge: # Needs updating from management geoprocessing to cursors
 	bridge_start = dt.now()
-	if bridge_err:
+	if bridge_error:
 		break
 	# Pull width and geometry fields for bridges
 	fieldsB = ['WID', 'SHAPE@']
@@ -1328,7 +1657,7 @@ while bridge: # Needs updating from management geoprocessing to cursors
 	# Error handling. If 0 bridges selected the script hangs.
 	if total_bridges == 0:
 		write("No default bridges found.")
-		no_def_bridge = True
+		no_default_bridge = True
 		bridge_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(bridge_start, bridge_finish)))
 		break
@@ -1336,7 +1665,7 @@ while bridge: # Needs updating from management geoprocessing to cursors
 	if total_roads == 0 and total_rails == 0:
 		write("{0} default WID bridges found.".format(total_bridges))
 		write("No underlying roads or rails for default bridges. \n The default bridges are either not snapped or missing their underlying road or rail. \n Make sure the bridges have the correct TRS.")
-		bridge_err = True
+		bridge_error = True
 		bridge_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(bridge_start, bridge_finish)))
 		break
@@ -1345,7 +1674,7 @@ while bridge: # Needs updating from management geoprocessing to cursors
 	write("{0} default WID bridges found.".format(total_bridges))
 
 	# Start an edit session. Must provide the workspace.
-	edit = ap.da.Editor(workspace)
+	edit = ap.da.Editor(os.path.dirname(TDS))
 	# Edit session is started without an undo/redo stack for versioned data
 	edit.startEditing(False, True) # For second argument, use False for unversioned data
 
@@ -1394,36 +1723,36 @@ while bridge: # Needs updating from management geoprocessing to cursors
 	ap.SelectLayerByAttribute_management("bridge_crv_lyr", "SUBSET_SELECTION", "WID = -999999")
 	# Make these selections into a new layer and get a count
 	ap.MakeFeatureLayer_management("bridge_crv_lyr", "bridges_rem")
-	total_rem_b = int(ap.management.GetCount("bridges_rem").getOutput(0))
+	remaining_bridge_total = int(ap.management.GetCount("bridges_rem").getOutput(0))
 	# Final messages of the state of the data after tool completion
-	bridge_count = (countR + countRR) - total_rem_b
-	write("Updated {0} bridges with new WID values.".format(bridge_count))
-	if total_rem_b > 0:
-		write("{0} bridges still have default WID. \n The default bridges are either not snapped or missing their underlying road or rail. \n Make sure the bridges have the correct TRS.".format(total_rem_b))
+	bridge_total = (countR + countRR) - remaining_bridge_total
+	write("Updated {0} bridges with new WID values.".format(bridge_total))
+	if remaining_bridge_total > 0:
+		write("{0} bridges still have default WID. \n The default bridges are either not snapped or missing their underlying road or rail. \n Make sure the bridges have the correct TRS.".format(remaining_bridge_total))
 	bridge_finish = dt.now()
 	write("{0} finished in {1}".format(tool_name, runtime(bridge_start, bridge_finish)))
 	break
 
-
+#----------------------------------------------------------------------
 ''''''''' Default Pylon HGT Updater '''''''''
 ## Added 50k+ restriction
 # Checks for pylons with default HGT (-999999) and updates them to match the intersecting cable HGT
 while pylong:
-	pylong_err = False
-	no_def_pylon = False
-	lecount = 0
-	total_rem_p = 0
+	pylon_error = False
+	no_default_pylon = False
+	pylon_total = 0
+	remaining_pylon_total = 0
 	tool_name = 'Default Pylon HGT Updater'
 	write("\n--- {0} ---\n".format(tool_name))
 	if not ap.Exists('UtilityInfrastructurePnt') or not ap.Exists('UtilityInfrastructureCrv'):
 		write("UtilityInfrastructurePnt or UtilityInfrastructureCrv feature classes missing./nCannot run Default Pylon HGT Updater.")
-		pylong_err = True
+		pylon_error = True
 		break
 	break
 
 while pylong: # Needs updating from management geoprocessing to cursors
 	pylong_start = dt.now()
-	if pylong_err:
+	if pylon_error:
 		break
 	# Pull height and geometry fields
 	fields = ['HGT', 'SHAPE@']
@@ -1458,7 +1787,7 @@ while pylong: # Needs updating from management geoprocessing to cursors
 	# Error handling. If 0 pylons selected the script hangs.
 	if total_pylons == 0:
 		write("No default pylons found.")
-		no_def_pylon = True
+		no_default_pylon = True
 		pylong_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(pylong_start, pylong_finish)))
 		break
@@ -1466,7 +1795,7 @@ while pylong: # Needs updating from management geoprocessing to cursors
 	if total_cables == 0:
 		write("{0} default value pylons found.".format(total_pylons))
 		write("No intersecting cables for default pylons. \n Try running Integrate and Repair then try again. \n The default pylons are either not snapped or missing a cable.")
-		pylong_err = True
+		pylon_error = True
 		pylong_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(pylong_start, pylong_finish)))
 		break
@@ -1488,45 +1817,45 @@ while pylong: # Needs updating from management geoprocessing to cursors
 						if i[0] < j[0]:
 							i[0] = j[0] # Sets current pylon HGT to intersecting cable's HGT
 			pylon.updateRow(i)
-			lecount += 1
+			pylon_total += 1
 
 	# Select any remaining pylons with default (-999999) height
 	ap.SelectLayerByAttribute_management("fc_pylon", "NEW_SELECTION", "F_CODE = 'AT042' AND zi026_ctuu >= 50000")
 	ap.SelectLayerByAttribute_management("fc_pylon", "SUBSET_SELECTION", "HGT = -999999")
 	# Make these selections into a new layer and get a count
 	ap.MakeFeatureLayer_management("fc_pylon", "pylons_rem")
-	total_rem_p = int(ap.management.GetCount("pylons_rem").getOutput(0))
+	remaining_pylon_total = int(ap.management.GetCount("pylons_rem").getOutput(0))
 	# Final messages of the state of the data after tool completion
-	lecount = lecount - total_rem_p
-	write("Updated {0} pylons with new HGT values.".format(lecount))
-	write("{0} pylons still have default HGT. \n Consider running Integrate and Repair before trying again. \n The remaining pylons are not snapped, missing a cable, or the underlying cable doesn't have a height.".format(total_rem_p))
+	pylon_total = pylon_total - remaining_pylon_total
+	write("Updated {0} pylons with new HGT values.".format(pylon_total))
+	write("{0} pylons still have default HGT. \n Consider running Integrate and Repair before trying again. \n The remaining pylons are not snapped, missing a cable, or the underlying cable doesn't have a height.".format(remaining_pylon_total))
 	pylong_finish = dt.now()
 	write("{0} finished in {1}".format(tool_name, runtime(pylong_start, pylong_finish)))
 	break
 
-
+#----------------------------------------------------------------------
 ''''''''' Building in BUA Descaler '''''''''
 # Descales buildings within BUAs that don't have important FFNs
 while building:
-	building_err = False
+	building_error = False
 	no_bua = False
 	no_bua_buildings = False
-	total_non_imp = 0
+	nonimportant_ffn_total = 0
 	tool_name = 'Building in BUA Descaler'
 	write("\n--- {0} ---\n".format(tool_name))
 	if not ap.Exists('SettlementSrf'):
 		write("SettlementSrf feature class missing./nCannot run Building in BUA Descaler.")
-		building_err = True
+		building_error = True
 		break
 	if not ap.Exists('StructureSrf') and not ap.Exists('StructurePnt'):
 		write("StructureSrf and StructurePnt feature classes missing./nCannot run Building in BUA Descaler.")
-		building_err = True
+		building_error = True
 		break
 	break
 
 while building: # Needs updating from management geoprocessing to cursors
 	building_start = dt.now()
-	if building_err:
+	if building_error:
 		break
 	# Make initial layers from the workspace
 	srf_exist = False
@@ -1597,7 +1926,7 @@ while building: # Needs updating from management geoprocessing to cursors
 	# Count buildings and buas in selections
 	bua_count = int(ap.GetCount_management("buas").getOutput(0))
 	total_import = import_ffn_s + import_ffn_p
-	total_non_imp = non_import_count_s + non_import_count_p
+	nonimportant_ffn_total = non_import_count_s + non_import_count_p
 
 	# End script if there are no BUAs or no buildings inside them
 	if bua_count == 0:
@@ -1606,7 +1935,7 @@ while building: # Needs updating from management geoprocessing to cursors
 		building_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
 		break
-	if total_non_imp == 0:
+	if nonimportant_ffn_total == 0:
 		write("\nNo buildings without important FFNs found in BUAs.")
 		no_bua_buildings = True
 		building_finish = dt.now()
@@ -1634,7 +1963,7 @@ while building: # Needs updating from management geoprocessing to cursors
 	write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
 	break
 
-
+#----------------------------------------------------------------------
 ''''''''' CACI Swap Scale and CTUU '''''''''
 # Swaps the Scale field with the CTUU field so we can work normally with CACI data
 while swap:
@@ -1790,25 +2119,26 @@ while swap:
 	break
 
 
-#----------------------------------------------------------------------
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Database Management Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 ''''''''' Database Feature Report '''''''''
 # Refactored from John Jackson's Feature_Itemized_Counter.py by Nat Cagle
 while fcount:
 	tool_name = 'Database Feature Report'
 	write("\n--- {0} ---\n".format(tool_name))
 	# Define counters for shape feature counts and total feature count
-	pnt_cnt = 0
-	crv_cnt = 0
-	srf_cnt = 0
-	tots_f = 0
-	hydro_cnt = 0
-	trans_cnt = 0
-	building_cnt = 0
-	landcover_cnt = 0
+	point_total = 0
+	curve_total = 0
+	surface_total = 0
+	all_feats_total = 0
+	hydro_total = 0
+	trans_total = 0
+	building_total = 0
+	landcover_total = 0
 	break
 
 while fcount:
@@ -1867,7 +2197,7 @@ while fcount:
 	]
 
 	# Create report output file path
-	results = "{0}\\{1}_Feature_Report_{2}.txt".format(rresults, gdb_name, time_stamp)
+	results = "{0}\\{1}_Feature_Report_{2}.txt".format(gdb_folder, gdb_name, time_stamp)
 	write("Checking feature classes...\n")
 
 	# Fill in dictionary with itemized feature subtype counts
@@ -1894,23 +2224,23 @@ while fcount:
 					# Count Feature Class total features
 					feat_dict[currFC][1] += 1
 					# Count Database total features
-					tots_f += 1
+					all_feats_total += 1
 					# Counting based on shape type
 					if currShape == 'Srf':
-						srf_cnt += 1
+						surface_total += 1
 						if any(int(substring) == int(curr_sub) for substring in landcover_list):
-							landcover_cnt += 1
+							landcover_total += 1
 					elif currShape == 'Crv':
-						crv_cnt += 1
+						curve_total += 1
 					else:
-						pnt_cnt += 1
+						point_total += 1
 					# Counting specific categories
 					if int(curr_sub) == int(building_sub):
-						building_cnt += 1
+						building_total += 1
 					if hydro_feat:
-						hydro_cnt += 1
+						hydro_total += 1
 					if trans_feat:
-						trans_cnt += 1
+						trans_total += 1
 
 			except:
 				# If FC does not have FCSubtype field put it on exclusion list
@@ -1925,14 +2255,14 @@ while fcount:
 		line = []
 		txt_file.write("Feature Count Report for TPC: {0}.gdb\n".format(gdb_name))
 		txt_file.write("Report created: {0} at time: {1}\n\n\n".format(today, current_time))
-		txt_file.writelines(["Point Features  :  ",str(pnt_cnt),"\n",
-							"Curve Features  :  ",str(crv_cnt),"\n",
-							"Surface Features:  ",str(srf_cnt),"\n",
-							"Total Features  :  ",str(tots_f),"\n\n",
-							"Total Hydrography Features        :  ",str(hydro_cnt),"\n",
-							"Total Transportation Features     :  ",str(trans_cnt),"\n",
-							"Total Building Surfaces and Points:  ",str(building_cnt),"\n",
-							"Total Landcover Surfaces          :  ",str(landcover_cnt),"\n\n\n"])
+		txt_file.writelines(["Point Features  :  ",str(point_total),"\n",
+							"Curve Features  :  ",str(curve_total),"\n",
+							"Surface Features:  ",str(surface_total),"\n",
+							"Total Features  :  ",str(all_feats_total),"\n\n",
+							"Total Hydrography Features        :  ",str(hydro_total),"\n",
+							"Total Transportation Features     :  ",str(trans_total),"\n",
+							"Total Building Surfaces and Points:  ",str(building_total),"\n",
+							"Total Landcover Surfaces          :  ",str(landcover_total),"\n\n\n"])
 		header = ['Feature Class'.ljust(25), 'Subtype'.center(25), 'Feature Count\n'.rjust(8),'\n\n']
 		txt_file.writelines(header)
 		for fKey in feat_dict:
@@ -1963,7 +2293,7 @@ while fcount:
 	write("{0} finished in {1}".format(tool_name, runtime(fcount_start, fcount_finish)))
 	break
 
-
+#----------------------------------------------------------------------
 ''''''''' Source Analysis Report '''''''''
 # Refactored from John Jackson's Version_Source_Counter.py by Nat Cagle
 while vsource:
@@ -1975,8 +2305,8 @@ while vsource:
 	vsource_start = dt.now()
 	time_stamp = dt.now().strftime("%Y_%m_%d_%H%M")
 	fields = ["Version","ZI001_SDP","ZI001_SDV","ZI001_SRT"]
-	results_csv = "{0}\\{1}_Source_Count_{2}.csv".format(rresults, gdb_name, time_stamp)
-	results_txt = "{0}\\{1}_Source_Count_{2}.txt".format(rresults, gdb_name, time_stamp)
+	results_csv = "{0}\\{1}_Source_Count_{2}.csv".format(gdb_folder, gdb_name, time_stamp)
+	results_txt = "{0}\\{1}_Source_Count_{2}.txt".format(gdb_folder, gdb_name, time_stamp)
 	feat_dict = OrderedDict()
 	write("Checking feature classes...\n")
 
@@ -2030,200 +2360,71 @@ while vsource:
 							line = [''.ljust(25),vKey.center(14),sKey.ljust(65),dKey.center(16),str(feat_dict[fKey][vKey][sKey][dKey]).rjust(8)+'\n']
 							txt_file.writelines(line)
 
-	write("Source Analysis Report created. File located in database folder:\n{0}".format(rresults))
+	write("Source Analysis Report created. File located in database folder:\n{0}".format(gdb_folder))
 	vsource_finish = dt.now()
 	write("{0} finished in {1}".format(tool_name, runtime(vsource_start, vsource_finish)))
 	break
 
 
-#----------------------------------------------------------------------
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Report Formatting and Wrap Up #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+#----------------------------------------------------------------------
 check_defense('in', defaults, metrics, explode)
-
-# Report of completed tasks
-write(u"   _____{0}{3}__\n / \\    {1}{4}  \\\n|   |   {1}{4}   |\n \\_ |   {1}{4}   |\n    |   {5}{2}{6}{4}   |\n    |   {1}{4}   |".format(slines, sspaces, gdb_name, exl, exs, exgl, exgr))
-
-# Easter Egg
-if secret == 'Chairman Bock':
-	write(u"    |        Our great and powerful leader       {0}|".format(exs))
-	write(u"    |         The kind-hearted and caring        {0}|".format(exs))
-	write(u"    |      _______        _                      {0}|".format(exs))
-	write(u"    |     / ___/ /  ___ _(_)_____ _  ___ ____    {0}|".format(exs))
-	write(u"    |    / /__/ _ \/ _ `/ / __/  ' \/ _ `/ _ \   {0}|".format(exs))
-	write(u"    |    \___/_//_/\_,_/_/_/ /_/_/_/\_,_/_//_/   {0}|".format(exs))
-	write(u"    |               ___           __             {0}|".format(exs))
-	write(u"    |              / _ )___  ____/ /__           {0}|".format(exs))
-	write(u"    |             / _  / _ \/ __/  '_/           {0}|".format(exs))
-	write(u"    |            /____/\___/\__/_/\_\            {0}|".format(exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	write(u"    |             Thanks you for your            {0}|".format(exs))
-	write(u"    |             outstanding service            {0}|".format(exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-
-write(u"    |   =======  Processes  Completed  =======   {0}|".format(exs))
-write(u"    |   {0}   {1}|".format(sspaces, exs))
-if vogon:
-	write(u"    |     - Buildings skipped                    {0}|".format(exs))
-if repair:
-	write(u"    |     - Repaired NULL Geometries             {0}|".format(exs))
-if fcode:
-	f_fcode_total = format_count(fcode_total)
-	write(u"    |     - Populated F_Codes                    {0}|".format(exs))
-	write(u"    |          {0} F_Code errors fixed       {1}{2}|".format(fcode_total, f_fcode_total, exs))
-if defaults:
-	write(u"    |     - Calculated Default Values            {0}|".format(exs))
-if metrics:
-	write(u"    |     - Calculated Metrics                   {0}|".format(exs))
-if ufi:
-	f_ufi_count = format_count(ufi_count)
-	write(u"    |     - Updated UFI Values                   {0}|".format(exs))
-	write(u"    |          {0} Duplicate or blank UFIs   {1}{2}|".format(ufi_count, f_ufi_count, exs))
-if hydro or trans or util:
-	write(u"    |     - Integrated and Repaired:             {0}|".format(exs))
-	if hydro:
-		f_hfeat_count = format_count(hfeat_count)
-		write(u"    |          {0} Hydro                     {1}{2}|".format(hfeat_count, f_hfeat_count, exs))
-	if trans:
-		f_tfeat_count = format_count(tfeat_count)
-		write(u"    |          {0} Trans                     {1}{2}|".format(tfeat_count, f_tfeat_count, exs))
-	if util:
-		f_ufeat_count = format_count(ufeat_count)
-		write(u"    |          {0} Utilities                 {1}{2}|".format(ufeat_count, f_ufeat_count, exs))
-if dups:
-	f_dup_count = format_count(dup_count)
-	write(u"    |     - Deleted Identical Features           {0}|".format(exs))
-	write(u"    |          {0} Duplicates found          {1}{2}|".format(dup_count, f_dup_count, exs))
-if explode:
-	f_complex_count = format_count(total_complex)
-	f_multi_count = format_count(total_multi)
-	write(u"    |     - Hypernova Burst Multipart Features   {0}|".format(exs))
-	write(u"    |          {0} Complex features found    {1}{2}|".format(total_complex, f_complex_count, exs))
-	write(u"    |          {0} Features exploded         {1}{2}|".format(total_multi, f_multi_count, exs))
-if bridge:
-	f_bridge_count = format_count(bridge_count)
-	f_total_rem_b = format_count(total_rem_b)
-	write(u"    |     - Default Bridge WID Updater           {0}|".format(exs))
-	if bridge_err:
-		write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
-	elif no_def_bridge:
-		write(u"    |          No default bridges found          {0}|".format(exs))
-	else:
-		write(u"    |          {0} Bridges updated           {1}{2}|".format(bridge_count, f_bridge_count, exs))
-		write(u"    |          {0} Defaults not updated      {1}{2}|".format(total_rem_b, f_total_rem_b, exs))
-		write(u"    |          Check the output for more info    {0}|".format(exs))
-if pylong:
-	f_lecount = format_count(lecount)
-	f_total_rem_p = format_count(total_rem_p)
-	write(u"    |     - Default Pylon HGT Updater            {0}|".format(exs))
-	if pylong_err:
-		write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
-	elif no_def_pylon:
-		write(u"    |          No default pylons found           {0}|".format(exs))
-	else:
-		write(u"    |          {0} Pylons updated            {1}{2}|".format(lecount, f_lecount, exs))
-		write(u"    |          {0} Defaults not updated      {1}{2}|".format(total_rem_p, f_total_rem_p, exs))
-		write(u"    |          Check the output for more info    {0}|".format(exs))
-if building:
-	f_total_non = format_count(total_non_imp)
-	write(u"    |     - Building in BUA Descaler             {0}|".format(exs))
-	if building_err:
-		write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
-	elif no_bua:
-		write(u"    |          No BUAs found                     {0}|".format(exs))
-	elif no_bua_buildings:
-		write(u"    |          No un-important buildings found   {0}|".format(exs))
-	else:
-		write(u"    |          {0} Buildings descaled        {1}{2}|".format(total_non_imp, f_total_non, exs))
-		write(u"    |          Check the output for more info    {0}|".format(exs))
-if swap:
-	write(u"    |     - CACI Swap Scale and CTUU             {0}|".format(exs))
-if fcount:
-	f_pnt_cnt = format_count(pnt_cnt)
-	f_crv_cnt = format_count(crv_cnt)
-	f_srf_cnt = format_count(srf_cnt)
-	f_tots_f = format_count(tots_f)
-	f_hydro_cnt = format_count(hydro_cnt)
-	f_trans_cnt = format_count(trans_cnt)
-	f_building_cnt = format_count(building_cnt)
-	f_landcover_cnt = format_count(landcover_cnt)
-	write(u"    |     - Feature report generated             {0}|".format(exs))
-	write(u"    |          {0} Point Features            {1}{2}|".format(pnt_cnt, f_pnt_cnt, exs))
-	write(u"    |          {0} Curve Features            {1}{2}|".format(crv_cnt, f_crv_cnt, exs))
-	write(u"    |          {0} Surface Features          {1}{2}|".format(srf_cnt, f_srf_cnt, exs))
-	write(u"    |          {0} Total Features            {1}{2}|".format(tots_f, f_tots_f, exs))
-	write(u"    |          {0} Hydrography Features      {1}{2}|".format(hydro_cnt, f_hydro_cnt, exs))
-	write(u"    |          {0} Transportation Features   {1}{2}|".format(trans_cnt, f_trans_cnt, exs))
-	write(u"    |          {0} Buildings                 {1}{2}|".format(building_cnt, f_building_cnt, exs))
-	write(u"    |          {0} Landcover Surfaces        {1}{2}|".format(landcover_cnt, f_landcover_cnt, exs))
-	write(u"    |          Check the output for more info    {0}|".format(exs))
-if vsource:
-	write(u"    |     - Source report generated              {0}|".format(exs))
-	write(u"    |          Check the output for more info    {0}|".format(exs))
-
-# Easter Egg
-if not vogon and not repair and not fcode and not defaults and not metrics and not ufi and not hydro and not trans and not util and not dups and not explode and not bridge and not pylong and not building and not swap and not fcount and not vsource:
-	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	write(u"    |       Kristen, click a check box and       {0}|".format(exs))
-	write(u"    |             stop being cheeky.             {0}|".format(exs))
-
-write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))
-write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
-write("\n")
+royal_decree('Finale', gdb_name, tool_names, bool_dict, results, secret, vogon, disable, user)
+background_music('stop')
 
 
 
 
 
-def main(*argv):
-	# Parameters
-	TDS = argv[0]
-	ap.env.workspace = TDS
-	workspace = os.path.dirname(ap.env.workspace)
-	bool_dict = {
-		'vogon': bool(argv[1]), # Skips large building datasets
-		'repair': bool(argv[2]),
-		'fcode': bool(argv[3]),
-		'defaults': bool(argv[4]),
-		'metrics': bool(argv[5]),
-		'ufi': bool(argv[6]),
-		'large': bool(argv[7]), # Running chunk processing for integrating large datasets
-		'hydro': bool(argv[8]),
-		'trans': bool(argv[9]),
-		'util': bool(argv[10]),
-		'dups': bool(argv[11]),
-		'explode': bool(argv[12]),
-		'bridge': bool(argv[13]),
-		'pylong': bool(argv[14]),
-		'building': bool(argv[15]), # Be sure to add Structure Srf and Pnt back if vogon is checked
-		'swap': bool(argv[16]),
-		'fcount': bool(argv[17]),
-		'vsource': bool(argv[18]),
-		'secret': bool(argv[19]) ### update index as needed
-	}
-
-	error_count = 0
-	featureclass = ap.ListFeatureClasses()
-
-	grand_entrance(TDS, bool_dict)
-
-	check_out_defense(bool_dict)
-
-	if bool_dict['hydro'] or bool_dict['trans'] or bool_dict['util']:
-		tool_name = 'Integrate and Repair'
-		write("\n--- {0} ---\n".format(tool_name))
-		# add conditional and function calls for hydro, trans, and util
 
 
-if __name__=='__main__':
-	ap.env.overwriteOutput = True
-	argv = tuple(ap.GetParameterAsText(i) for i in range(ap.GetArgumentCount()))
-	now = dt.datetime.now()
-	main(*argv)
-	write(dt.datetime.now() - now)
+# def main(*argv):
+# 	# Parameters
+# 	TDS = argv[0]
+# 	ap.env.workspace = TDS
+# 	workspace = os.path.dirname(ap.env.workspace)
+# 	bool_dict = {
+# 		'vogon': bool(argv[1]), # Skips large building datasets
+# 		'repair': bool(argv[2]),
+# 		'fcode': bool(argv[3]),
+# 		'defaults': bool(argv[4]),
+# 		'metrics': bool(argv[5]),
+# 		'ufi': bool(argv[6]),
+# 		'large': bool(argv[7]), # Running chunk processing for integrating large datasets
+# 		'hydro': bool(argv[8]),
+# 		'trans': bool(argv[9]),
+# 		'util': bool(argv[10]),
+# 		'dups': bool(argv[11]),
+# 		'explode': bool(argv[12]),
+# 		'bridge': bool(argv[13]),
+# 		'pylong': bool(argv[14]),
+# 		'building': bool(argv[15]), # Be sure to add Structure Srf and Pnt back if vogon is checked
+# 		'swap': bool(argv[16]),
+# 		'fcount': bool(argv[17]),
+# 		'vsource': bool(argv[18]),
+# 		'secret': bool(argv[19]) ### update index as needed
+# 	}
+#
+# 	error_count = 0
+# 	featureclass = ap.ListFeatureClasses()
+#
+# 	grand_entrance(TDS, bool_dict)
+#
+# 	check_out_defense(bool_dict)
+#
+# 	if bool_dict['hydro'] or bool_dict['trans'] or bool_dict['util']:
+# 		tool_name = 'Integrate and Repair'
+# 		write("\n--- {0} ---\n".format(tool_name))
+# 		# add conditional and function calls for hydro, trans, and util
+#
+#
+# if __name__=='__main__':
+# 	ap.env.overwriteOutput = True
+# 	argv = tuple(ap.GetParameterAsText(i) for i in range(ap.GetArgumentCount()))
+# 	now = dt.datetime.now()
+# 	main(*argv)
+# 	write(dt.datetime.now() - now)

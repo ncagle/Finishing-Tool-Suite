@@ -14,16 +14,16 @@ import numpy as np
 import csv as cs
 import uuid
 import os
+import subprocess
 import sys
 import time
 import math
 import traceback
 import re
 import imp
-import subprocess
+
 #import arc_dict as ad
 ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\FTX_source_dev\arc_dict.py")
-
 
 #            ________________________________
 #           | It does a whole bunch of stuff |
@@ -97,9 +97,9 @@ ap.env.overwriteOutput = True
 secret = ap.GetParameterAsText(1) ### update index as needed
 vogon = ap.GetParameter(2) # Skips large building datasets
 disable = ap.GetParameter(3)
-data_maintenance = ap.GetParameter(4)
 
-# tool_list = ap.GetParameter(4) + ap.GetParameter(5) + ap.GetParameter(6) + ap.GetParameter(7) + ap.GetParameter(8)
+
+tool_list = ap.GetParameter(4) + ap.GetParameter(5) + ap.GetParameter(6) + ap.GetParameter(7) + ap.GetParameter(8)
 # write(tool_list)
 # ['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values', 'Integrate Hydrography Features', 'Integrate Transportation Features', 'Integrate Utility Features', 'Delete Identical Features', 'Hypernova Burst Multipart Features', 'Default Bridge WID Updater', 'Default Pylon HGT Updater', 'Building in BUA Descaler', 'CACI Swap Scale and CTUU', 'Database Feature Report', 'Source Analysis Report']
 
@@ -120,17 +120,6 @@ swap = "CACI Swap Scale and CTUU"
 fcount = "Database Feature Report"
 vsource = "Source Analysis Report"
 
-tool_list = ['Repair All NULL Geometries',
-    'Populate F_Codes',
-    'Calculate Metrics',
-    'Update UFI Values',
-    'Integrate Hydrography Features',
-    'Integrate Utility Features',
-    'Delete Identical Features',
-    'Hypernova Burst Multipart Features',
-    'Default Pylon HGT Updater',
-    'Building in BUA Descaler',
-    'Database Feature Report']
 
 bool_dict = OrderedDict([
 	(repair, False),
@@ -151,24 +140,16 @@ bool_dict = OrderedDict([
 	(vsource, False)
 ])
 
-# for key in bool_dict:
-#     if key in tool_list:
-#         bool_dict[key] = True
-#     print("{0} : {1}".format(key, bool_dict[key]))
-#
+
+for key in bool_dict:
+    if key in tool_list:
+        bool_dict[key] = True
+    #print("{0} : {1}".format(key, bool_dict[key]))
+
 # for fc in featureclass:
 #     for key in bool_dict:
 #         if bool_dict[key]:
 #             print("Running {0} on {1}".format(key, fc))
-
-
-for key in bool_dict:
-    if key in data_maintenance:
-        bool_dict[key] = True
-
-
-
-
 
 
 
@@ -179,13 +160,13 @@ for key in bool_dict:
 # geometry_correction = ap.GetParameter(6)
 # preprocessing = ap.GetParameter(7)
 # database_management = ap.GetParameter(8)
-#
+
 # Data Maintenance Tools: 'Repair All NULL Geometries';'Populate F_Codes';'Calculate Default Values';'Calculate Metrics';'Update UFI Values'
 # Integration Tools: 'Integrate Hydrography Features';'Integrate Transportation Features';'Integrate Utility Features'
 # Geometry Correction Tools: 'Delete Identical Features';'Hypernova Burst Multipart Features'
 # Preprocessing Tools:  'Default Bridge WID Updater'; 'Default Pylon HGT Updater'; 'Building in BUA Descaler'; 'CACI Swap Scale and CTUU'
 # Database Management Tools: 'Database Feature Report'; 'Source Analysis Report'
-#
+
 # write_info('Data Maintenance Tools', data_maintenance)
 # write_info('Integration Tools', integration)
 # write_info('Geometry Correction Tools', geometry_correction)
@@ -651,7 +632,6 @@ write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".for
 write("\n")
 
 #----------------------------------------------------------------------
-
 background_music('start')
 featureclass = create_fc_list(vogon)
 caci_schema = snowflake_protocol(featureclass)
@@ -669,9 +649,19 @@ where_scale = "zi026_ctuu >= 50000" #### Add option to specify what scale and up
 	#do all the things
 	#can now modify the list of classes to work on easier.
 
-for key in bool_dict:
-    if bool_dict[key]:
-        repair_geometry(featureclass)
+
+
+
+if bool_dict[repair]:
+	repair_geometry(featureclass)
+
+
+
+
+
+
+
+
 
 
 repair = False
@@ -2100,6 +2090,7 @@ while vsource:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 check_defense('in', defaults, metrics, explode)
+background_music('stop')
 
 # Report of completed tasks
 write(u"   _____{0}{3}__\n / \\    {1}{4}  \\\n|   |   {1}{4}   |\n \\_ |   {1}{4}   |\n    |   {5}{2}{6}{4}   |\n    |   {1}{4}   |".format(slines, sspaces, gdb_name, exl, exs, exgl, exgr))
@@ -2235,7 +2226,7 @@ write(u"    |                              {0}      _       |\n    |            
 write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
 write("\n")
 
-background_music('stop')
+
 
 
 
@@ -2285,161 +2276,3 @@ background_music('stop')
 # 	now = dt.datetime.now()
 # 	main(*argv)
 # 	write(dt.datetime.now() - now)
-
-
-
-#########################
-# online python testing #
-#########################
-
-# from collections import OrderedDict
-#
-# if False: # Update on cleaning field lists
-#     out_class = [u'OBJECTID', u'SHAPE', u'F_CODE', u'FCSUBTYPE', u'AOO', u'ARA', u'Version', u'og_oid', u'SHAPE_Length', u'SHAPE_Area']
-#     fc_fields = [u'ObjectID', u'F_CODE', u'FCSUBTYPE', u'AOO', u'ARA', u'SHAPE', u'SHAPE_Length', u'SHAPE_Area', u'GlobalID', u'Version', u'og_oid']
-#     out_fields = ['shape', 'area', 'length', 'global', ''] # List Geometry and OID fields to be removed
-#     # print("out_class original:  {0}".format(out_class))
-#     # print("fc_fields original:  {0}".format(fc_fields))
-#     # print("")
-#     # print("Removing fields that match substring list:\n                     {0}".format(out_fields))
-#     # print("")
-#     # Add 'if substring' to ignore empty strings in the out_fields list
-#     out_class = [field for field in out_class if not any(substring in field.lower() for substring in out_fields if substring)]
-#     fc_fields = [field for field in fc_fields if not any(substring in field.lower() for substring in out_fields if substring)]
-#
-#     # if len(out_class) == len(fc_fields):
-#     #     print("out_class and fc_fields rows match")
-#     #     print("out_class original:  {0}".format(out_class))
-#     #     print("fc_fields original:  {0}".format(fc_fields))
-#     #     print("")
-#
-#
-# featureclass = [
-#     'SandDunes',
-#     'SeaplaneRun',
-#     'SewageTreatmentPlant',
-#     'SharpCurve',
-#     'ShoppingComplex',
-#     'ShorelineRamp',
-#     'SmallCraftFacility',
-#     'SoilSurfaceRegion',
-#     'SportsGround',
-#     'Stadium',
-#     'SteepGrade',
-#     'StructuralPile',
-#     'TankFarm',
-#     'Thicket',
-#     'TrafficLight',
-#     'TransportationStation',
-#     'TransRouteProtectStruct',
-#     'UtilityCover',
-#     'VesselLift'
-#     ]
-#
-# # bool_dict = OrderedDict([
-# # 	('repair', "Repair All NULL Geometries"),
-# # 	('fcode', "Populate F_Codes"),
-# # 	('defaults', "Calculate Default Values"),
-# # 	('metrics', "Calculate Metrics"),
-# # 	('ufi', "Update UFI Values"),
-# # 	('hydro', "Integrate Hydrography Features"),
-# # 	('trans', "Integrate Transportation Features"),
-# # 	('util', "Integrate Utility Features"),
-# # 	('dups', "Delete Identical Features"),
-# # 	('explode', "Hypernova Burst Multipart Features"),
-# # 	('bridge', "Default Bridge WID Updater"),
-# # 	('pylong', "Default Pylon HGT Updater"),
-# # 	('building', "Building in BUA Descaler"),
-# # 	('swap', "CACI Swap Scale and CTUU"),
-# # 	('fcount', "Database Feature Report"),
-# # 	('vsource', "Source Analysis Report")
-# # ])
-#
-# # tool_list = [
-# #     'Repair All NULL Geometries',
-# #     'Populate F_Codes',
-# #     'Calculate Default Values',
-# #     'Calculate Metrics',
-# #     'Update UFI Values',
-# #     'Integrate Hydrography Features',
-# #     'Integrate Transportation Features',
-# #     'Integrate Utility Features',
-# #     'Delete Identical Features',
-# #     'Hypernova Burst Multipart Features',
-# #     'Default Bridge WID Updater',
-# #     'Default Pylon HGT Updater',
-# #     'Building in BUA Descaler',
-# #     'CACI Swap Scale and CTUU',
-# #     'Database Feature Report',
-# #     'Source Analysis Report'
-# #     ]
-#
-# repair = "Repair All NULL Geometries"
-# fcode = "Populate F_Codes"
-# defaults = "Calculate Default Values"
-# metrics = "Calculate Metrics"
-# ufi = "Update UFI Values"
-# hydro = "Integrate Hydrography Features"
-# trans = "Integrate Transportation Features"
-# util = "Integrate Utility Features"
-# dups = "Delete Identical Features"
-# explode = "Hypernova Burst Multipart Features"
-# bridge = "Default Bridge WID Updater"
-# pylong = "Default Pylon HGT Updater"
-# building = "Building in BUA Descaler"
-# swap = "CACI Swap Scale and CTUU"
-# fcount = "Database Feature Report"
-# vsource = "Source Analysis Report"
-#
-# tool_list = ['Repair All NULL Geometries',
-#     'Populate F_Codes',
-#     'Calculate Metrics',
-#     'Update UFI Values',
-#     'Integrate Hydrography Features',
-#     'Integrate Utility Features',
-#     'Delete Identical Features',
-#     'Hypernova Burst Multipart Features',
-#     'Default Pylon HGT Updater',
-#     'Building in BUA Descaler',
-#     'Database Feature Report']
-#
-# bool_dict = OrderedDict([
-# 	(repair, False),
-# 	(fcode, False),
-# 	(defaults, False),
-# 	(metrics, False),
-# 	(ufi, False),
-# 	(hydro, False),
-# 	(trans, False),
-# 	(util, False),
-# 	(dups, False),
-# 	(explode, False),
-# 	(bridge, False),
-# 	(pylong, False),
-# 	(building, False),
-# 	(swap, False),
-# 	(fcount, False),
-# 	(vsource, False)
-# ])
-#
-#
-# for key in bool_dict:
-#     if key in tool_list:
-#         bool_dict[key] = True
-#     print("{0} : {1}".format(key, bool_dict[key]))
-# print("")
-# for fc in featureclass:
-#     for key in bool_dict:
-#         if bool_dict[key]:
-#             print("Running {0} on {1}".format(key, fc))
-#     print("")
-#
-#
-#
-#
-# empty_str = ''
-#
-# if repair:
-#     print("true")
-# if empty_str:
-#     print("empty")
