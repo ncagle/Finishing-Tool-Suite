@@ -268,11 +268,11 @@ def snowflake_protocol(featureclass): # Checking for CACI schema cz they're "spe
 			if field_check:
 				snowflake_finish = dt.now()
 				write("Variant TDS schema identified in {0}\nSnowflake protocol activated for relevant tools".format(runtime(snowflake_start, snowflake_finish)))
-				return True
+				return True, field_check
 			else:
 				snowflake_finish = dt.now()
 				write("Regular TDS schema identified in {0}".format(runtime(snowflake_start, snowflake_finish)))
-				return False
+				return False, scale_field
 
 def disable_editor_tracking(featureclass, gdb_name): # Automatically disables editor tracking for each feature class that doesn't already have it disabled
 	disable_start = dt.now()
@@ -508,7 +508,7 @@ write("\n")
 
 #----------------------------------------------------------------------
 featureclass = create_fc_list(vogon)
-caci_schema = snowflake_protocol(featureclass)
+caci_schema, scale_name = snowflake_protocol(featureclass)
 if disable:
 	disable_editor_tracking(featureclass, gdb_name)
 check_defense('out', defaults, metrics, explode)

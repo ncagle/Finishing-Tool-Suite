@@ -66,12 +66,60 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
   - Pull local user profile name and add it to the "stop being cheeky" easter egg. Create user whitelist and blacklist.
   - Add dropdown with background music selection
 
-  - RefreshCatalog for main folder at start of run to evade NoneType error for new copies of databases that ArcMap can't find for dumb reasons
+  - RefreshCatalog for TDS at start of run to evade NoneType error for new copies of databases that ArcMap can't find for dumb reasons
   - Switch the order of Delete Identical Features and Hypernova Burst Multipart so that any kickback multiparts are exploded and then checked for duplicates. Apparently that's a thing that can happen in the data and needs to be checked for in this order.
+
+  - Add mass select option at the top. option for Interim run that only does the bare minimum and tells the user to ignore things like UFI errors. option to check all the final finishing options. option to check everything (except caci swap)
+
+  - Descale Buildings in BUAs should leave buildins of VO HGT >=46m
+
+  - Don't make fishnet if no trans/hydro/util
+
+  - Find and fix Bezier curves
+with arcpy.da.SearchCursor("HydrographyCurves", ["OID@", "SHAPE@JSON"]) as scur:
+  count = 0
+  oid_list = []
+  for oid, json in scur:
+    count += 1
+    if 'curve' in json:
+      oid_list.append(oid)
+    if '000' in str(count):
+      print("Searched {0} curves".format(count))
+  print('')
+  print("OIDs of features containing Bezier curves:\n({0})".format(str(oid_list)[1:-1]))
+
+
+arcpy.Densify_edit("HydrographyCurves", "ANGLE","", "", "20")
+
+  - Sluice Gate line and point AOO. line is easy to get degree off north azimuth
+points:
+with arcpy.da.SearchCursor("HydrographyCurves selection", ['aoo', 'SHAPE@']) as scur:
+...     with arcpy.da.UpdateCursor("HydrographyPoints selection", ['aoo', 'SHAPE@']) as ucur:
+...         for srow in scur:
+...             for urow in ucur:
+...                 if not urow[-1].disjoint(srow[-1]):
+...                     urow[0] = srow[0]
+...                     ucur.updateRow(urow)
+lines:
+def NorthAzimuth(Pline):
+	degBearing = math.degrees(math.atan2((Pline.lastPoint.X - Pline.firstPoint.X),(Pline.lastPoint.Y - Pline.firstPoint.Y)))
+	if (degBearing < 0):
+		degBearing += 360.0
+	return degBearing
+
+Field (type double) = NorthAzimuth( !Shape! )
+
 
 ## Recent Changes
   - Optional DisableEditorTracking_management (default true)
   - More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
+
+
+Crevasse
+A deep crack in ice.
+
+Crevice
+A narrow opening in rock.
 
 
 Toolbox is running slow when everything is imported. All in one script 3000 lines and growing.
@@ -115,10 +163,21 @@ still keeping it all in one toolbox without extra files
 	# ffn_list_caci
 		# Same as above but the CACI specific version cz they just have to be different
 
+""""""""""""""""""""""""""""""""""""""
+'''MAXAR Important FFNs (to be compared)'''
+"""""""""""""""""""""""""""""""""""""""
+"Within a BUA only specifc buildings are needed for portayal.
+
+ 'FFN' = Utilities =350, Transport = 480, Hotel = 551 Resort = 552, Radio Broadcasting = 601, Television Broadcasting = 604, Public Administration = 808, Public Order, Safety and Security Services = 830, Education = 850, Human Health Activities = 860, Refugee Shelter = 883, Cultural, Arts and Entertainment = 890, Religious Activities = 930, Meeting Place = 970
+OR
+Height Above Surface Level >= 46 m. OR  Navigation Landmark is True"
+"""
+
 #----------------------------------------------------------------------
 user = os.getenv('username')
 TDS = ap.GetParameterAsText(0)
 ap.env.workspace = TDS
+arcpy.env.extent = TDS
 ap.env.overwriteOutput = True
 #workspace = os.path.dirname(ap.env.workspace)
 #### Add these three to tool_list and tool_names?
@@ -244,6 +303,7 @@ results.landcover_total = 0
 ╚═══════════════════╝
 '''
 
+#### Maybe 3 different NULL checks aren't necessary XD
 #----------------------------------------------------------------------
 # Explicit is better than implicit
 # Lambda function works better than "if not fieldname:", which can falsely catch 0.
@@ -423,7 +483,7 @@ def process_defaults(featureclass):
 			count_nulls += fc_nulls
 		write('{0} total NULL values populated with default values'.format(count_nulls))
 	except ap.ExecuteError:
-		writeresults(tool_name)
+		writeresults('Calculate Default Values')
 
 #----------------------------------------------------------------------
 # def dangling_orphans():
@@ -1130,9 +1190,10 @@ while hydro:
 		mem_fc = "in_memory\\{0}_grid".format(hydro_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
-			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
-			break
+		arcpy.CopyFeatures_management(arcpy.env.extent.polygon, rectangle)
+		# if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+		# 	write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+		# 	break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -1165,6 +1226,7 @@ while hydro:
 		write("Freeing partition memory")
 		ap.Delete_management("in_memory")
 		ap.Delete_management(grid)
+		ap.Delete_management(rectangle)
 	except ap.ExecuteError:
 		writeresults(tool_name)
 
@@ -1190,9 +1252,10 @@ while trans:
 		mem_fc = "in_memory\\{0}_grid".format(trans_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
-			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
-			break
+		arcpy.CopyFeatures_management(arcpy.env.extent.polygon, rectangle)
+		# if ap.MinimumBoundingGeometry_management(trans_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+		# 	write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+		# 	break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -1225,6 +1288,7 @@ while trans:
 		write("Freeing partition memory")
 		ap.Delete_management("in_memory")
 		ap.Delete_management(grid)
+		ap.Delete_management(rectangle)
 	except ap.ExecuteError:
 		writeresults(tool_name)
 
@@ -1249,9 +1313,10 @@ while util:
 		mem_fc = "in_memory\\{0}_grid".format(util_list[1])
 		rectangle = "in_memory\\rectangle"
 		write("Defining partition envelope")
-		if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
-			write("No curve features found. Nothing to Integrate. Moving to the next tool.")
-			break
+		arcpy.CopyFeatures_management(arcpy.env.extent.polygon, rectangle)
+		# if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
+		# 	write("No curve features found. Nothing to Integrate. Moving to the next tool.")
+		# 	break
 		with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 			for row in scursor:
 				shape = row[0]
@@ -1284,6 +1349,7 @@ while util:
 		write("Freeing partition memory")
 		ap.Delete_management("in_memory")
 		ap.Delete_management(grid)
+		ap.Delete_management(rectangle)
 	except ap.ExecuteError:
 		writeresults(tool_name)
 

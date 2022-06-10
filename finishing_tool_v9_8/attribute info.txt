@@ -1,559 +1,850 @@
-
-Aqueduct
-#----------------------------------------------------------------------
-if ATC == Underground or Underwater
-  - RLE = Not Applicable
-	- CDA = True
-	- LMC = False
-
-if ATC == Qanat and not intersecting Qanat Shaft Point
-  - ATC = Surface
-
-
-
-Buildings
-#----------------------------------------------------------------------
-For CACI:
-if zi037_REL == Mixed and/or No Designation
-  - zi037_REL = noInformation
-	- if zi037_RFA != noInformation
-	  - zi037_RFA = noInformation
-if zi037_RFA != noInformation
-  - FFN = Place of Worship
-
-Building Point Logic Checks Building_P ZI037_RFA is populated without a valid ZI037_REL value
-
-Building Point Logic Checks Building_P ZI037_REL is populated without a valid ZI037_RFA value
-
-Building Point Logic Checks Building_P FFN in relation to ZI037_RFA
-
-Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Christianity)
-
-Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Islam)
-
-Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Buddhism)
-
-Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Buddhism/Hinduism)
-
-Religious Information : Religious Designation
-     -999999 = No Information
-                1 = Buddhism
-                2 = Islam
-                3 = Roman Catholic
-                4 = Christian
-                5 = Judaism
-                6 = Orthodox
-                7 = Protestant
-                8 = Shinto
-                9 = Hinduism
-              10 = Shia
-              11 = Sunni
-              12 = Nestorian
-              13 = Chaldean
-              14 = Mixed and/or No Designation
-            999 = Other
-Religious Information : Religious Facility Type
-     -999999 = No Information
-                1 = Cathedral
-                2 = Chapel
-                3 = Church
-                4 = Marabout
-                5 = Minaret
-                6 = Mission
-                7 = Mosque
-                8 = Pagoda
-                9 = Religious Community
-              10 = Seminary
-              11 = Shrine
-              12 = Stupa
-              13 = Synagogue
-              14 = Tabernacle
-              15 = Temple
-              18 = Convent
-              19 = Monastery
-              20 = Noviciate
-              21 = Hermitage
-              22 = Retreat
-            999 = Other
-
-#----------------------------------------------------------------------
-
-
-Building Surface Logic Checks Building_S ZI037_RFA is populated without a valid ZI037_REL value
-
-Building Surface Logic Checks Building_S ZI037_REL is populated without a valid ZI037_RFA value
-
-Building Surface Logic Checks Building_S FFN in relation to ZI037_RFA
-
-Building Surface Logic Checks Building_S ZI037_RFA in relation to ZI037_REL (Christianity)
-
-Building Surface Logic Checks Building_S ZI037_RFA in relation to ZI037_REL (Islam)
-
-Building Surface Logic Checks Building_S ZI037_RFA in relation to ZI037_REL (Buddhism)
-
-Building Surface Logic Checks Building_S ZI037_RFA in relation to ZI037_REL (Buddhism/Hinduism)
-
-
-
-
-
-
-
-#----------------------------------------------------------------------
-
-
-If Cable_C: CAB contains default value and intersects Power_Substation_S, then high probability Cable Logic Checks CAB = 6(Power Transmission Line)
-
-If Cable_C: CAB contains default value and intersects Power_Substation_P, then high probability Cable Logic Checks CAB = 6(Power Transmission Line)
-
-If Cable_C: CAB contains default value and intersects Electric_Power_Station_S, then high Cable Logic Checks probability CAB = 6(Power Transmission Line)
-
-If Cable_C: CAB contains default value and intersects Electric_Power_Station_P, then high Cable Logic Checks probability CAB = 6(Power Transmission Line)
-
-If Cable_C: CAB contains default value and intersects Wind_Farm_S, then high probability CAB = Cable Logic Checks 6(Power Transmission Line)
-
-Cable Logic Checks If Cable_C intersects Pylon_P and LOC contains default value, then LOC = 45(Above Surface)
-
-Cable Logic Checks If Cable_C: TST contains default value, then high probability TST = 1(Symmetric Catenary)
-
-Cable_C: CAB value must be the same as intersecting Pylon_P AT005_CAB value. If no value exists Cable Logic Checks for one, set it equal to the other.
-
-Cable C, Vertical Relative Location (LOC) cannot be No Information, On Waterbody Bottom, Below Waterbody Bottom, Below Ground Surface, On Surface, Above Waterbody Bottom, or Below Cable Logic Checks Waterbody Surface. Verify that LOC is correct
-
-Cable C Cable Suspended Shape (TST) is Symmetric Catenary and Cable C Vertical Relative Location Cable Logic Checks is not Above Surface
-
-Cable Logic Checks Cable_C on Cable_C, duplicate Cable_C features.
-
-Cable_C does not intersect Pylon_P features. Ensure cable has applicable pylon features snapped to Cable Logic Checks it.
-
-Cable Logic Checks If new Cable_C and TST = Mountain Catenary, then HGT = -999999
-
-Cable Logic Checks Cable_C: PCF value must be the same as intersecting Pylon_P PCF value.
-
-Cable Logic Checks Cable C Cable Type (CAB) must equal Pylon P Cable Type (AT005_CAB)
-
-If Cableway_C: FFN contains default value and intersects Canal_S, then high probability FFN = Cableway Logic Checks 480(Transport)
-
-If Cableway_C: FFN contains default value and intersects Canal_C, then high probability FFN = Cableway Logic Checks 480(Transport)
-
-
-#----------------------------------------------------------------------
-
-
-Canal Checks Canal_S. sharing a face with this hydro. Surface
-
-Canal Checks Canal_C. overlapping this hydro. Surface
-
-Canal Checks Hydro. curve overlapping this Canal_S.
-
-Canal Checks Canal_C. intertwined with this hydro. curve
-
-
-#----------------------------------------------------------------------
-
-
-Checkpoint Logic Checks If Checkpoint_P: TRS contains default value and intersects Canal_C, then TRS = 7(Maritime)
-
-Checkpoint Logic Checks If Checkpoint_P: TRS contains default value and intersects Canal_S, then TRS = 7(Maritime)
-
-
-#----------------------------------------------------------------------
-
-
-If Crane_P: TRS contains default value and does not intersect Road_C or Cart Track_C or River_S or River_C or Canal_S or Canal_C or Railway_C or Railway Sidetrack_C, then TRS = 8(No Transportation Crane Logic Checks System)
-
-Crane Logic Checks If Crane_P: TRS contains default value and intersects Canal_C, then TRS = 7(Maritime)
-
-Crane Logic Checks If Crane_P: TRS contains default value and intersects Canal_S, then TRS = 7(Maritime)
-
-
-#----------------------------------------------------------------------
-
-
-Dam Logic Checks If Hydroelectric Dam_S: TRS contains default value and intersects Road_C, then TRS = 13(Road)
-
-If Hydroelectric Dam_S: TRS contains default value and intersects Cart_Track_C, then TRS = Dam Logic Checks 13(Road)
-
-Dam Logic Checks If Dam_S: TRS contains default value and intersects Railway_C, then TRS = 12(Railway)
-
-Dam Logic Checks If Dam_S: TRS contains default value and intersects Railway_Sidetrack_C, then TRS = 12(Railway)
-
-Dam Logic Checks If Dam_S: TRS contains default value and intersects Trail_C, then TRS = 9(Pedestrian)
-
-If Dam_S: DFU contains default value and intersects a Penstock_C, then DFU = 4(Hydroelectric Dam Logic Checks Power Generation)
-
-Dam Logic Checks If Dam_S: DFU = 4(Hydroelectric Power Generation) and MCC = -999999, then MCC = 21(Concrete)
-
-If Dam_S: WOC <= 0 and TRS = 13(Road) or 9(Pedestrian) or 12(Railway), then WOC = WID of Dam Logic Checks intersecting Road, Cart_Track, Trail or Railway_C: ZI017_GAW
-
-Dam Logic Checks If Dam_S: WOC > 0 and TRS = 13(Road), then WOC >= ZI016_WD1 of Road_C
-
-Dam Logic Checks If Dam_S: WOC > 0 and TRS = 12(Railway), then WOC >= ZI017_GAW of Railway_C
-
-Dam Logic Checks If Dam_S: WOC > 0 and TRS = 12(Railway), then WOC >= ZI017_GAW of Railway_Sidetrack_C
-
-Dam Logic Checks If Dam_S: WOC > 0 and TRS = 9(Pedestrian), then WOC >= WID of Trail_C
-
-Dam Logic Checks If Dam_S: WOC > 0 and TRS = 13(Road), then WOC >= WID of Cart_Track_C
-
-If Dam_S: TRS contains default value and does not intersect Road, Cart_Track, Railway, Dam Logic Checks Railway_Sidetrack or Trail_C, then TRS = 8(No Transportation System)
-
-If Dam_S: DFU contains default value and intersects a Inland_Waterbody_S: IWT = 4(Reservoir), Dam Logic Checks then DFU = 3(Flood Control)
-
-Dam Logic Checks If Dam_S: DFU contains default value and intersects a Lock_S, then DFU = 2(Navigation)
-
-Dam Logic Checks If Dam_S: DFU contains default value and intersects a Lock_P, then DFU = 2(Navigation)
-
-If Dam_S: DFU = 2(Navigation) or 4(Hydroelectric Power Generation) and MCC = -999999, then MCC Dam Logic Checks = 21(Concrete)
-
-
-#----------------------------------------------------------------------
-
-
-If Electric_Power_Station_S: POS contains default value, and intersects a Conveyor_P (50m), then Electric Power Station Logic Checks high probability POS = 4(Thermal)
-
-If Electric_Power_Station_P: POS contains default value, and intersects a Conveyor_C (50m), then Electric Power Station Logic Checks high probability POS = 4(Thermal)
-
-If Electric_Power_Station_S: POS contains default value, and intersects a Penstock_C (50m), then Electric Power Station Logic Checks high probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_P: POS contains default value, and intersects a Penstock_C (50m), then Electric Power Station Logic Checks high probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_S: POS contains default value, and intersects a Smokestack_P (50m), then Electric Power Station Logic Checks high probability POS = 4(Thermal)
-
-If Electric_Power_Station_P: POS contains default value, and intersects a Smokestack_P (50m), then Electric Power Station Logic Checks high probability POS = 4(Thermal)
-
-If Electric_Power_Station_S: POS contains default value, and intersects a Dam_S (50m), then high Electric Power Station Logic Checks probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_P: POS contains default value, and intersects a Dam_S (50m), then high Electric Power Station Logic Checks probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_S: POS contains default value, and intersects a Dam_C (50m), then high Electric Power Station Logic Checks probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_P: POS contains default value, and intersects a Dam_C (50m), then high Electric Power Station Logic Checks probability POS = 2(Hydro-electric)
-
-If Electric_Power_Station_S: POS contains default value, and intersects Geothermal_Outlet_P Electric Power Station Logic Checks (50m), then high probability POS = 1(Geothermal)
-
-If Electric_Power_Station_P: POS contains default value, and intersects Geothermal_Outlet_P Electric Power Station Logic Checks (50m), then high probability POS = 1(Geothermal)
-
-If Electric_Power_Station_S: POS contains default value, and intersects Geothermal_Outlet_S Electric Power Station Logic Checks (50m), then high probability POS = 1(Geothermal)
-
-If Electric_Power_Station_P: POS contains default value, and intersects Geothermal_Outlet_S Electric Power Station Logic Checks (50m), then high probability POS = 1(Geothermal)
-
-
-#----------------------------------------------------------------------
-
-
-Embankment Logic Checks If Embankment_C is coincident with Canal_C, then TRS = 5(Canal)
-
-
-#----------------------------------------------------------------------
-
-
-Facility Logic Checks Facility_S ZI037_RFA is populated without a valid ZI037_REL value
-
-Facility Logic Checks Facility_P ZI037_RFA is populated without a valid ZI037_REL value
-
-Facility Logic Checks Facility_S ZI037_REL is populated without a valid ZI037_RFA value
-
-Facility Logic Checks Facility_P ZI037_REL is populated without a valid ZI037_RFA value
-
-Facility Logic Checks Facility_S ZI037_RFA in relation to FFN
-
-Facility Logic Checks Facility_P ZI037_RFA in relation to FFN
-
-Facility Logic Checks Facility_S ZI037_RFA in relation to ZI037_REL (Christianity)
-
-Facility Logic Checks Facility_P ZI037_RFA in relation to ZI037_REL (Christianity)
-
-Facility Logic Checks Facility_S ZI037_RFA in relation to ZI037_REL (Islam)
-
-Facility Logic Checks Facility_P ZI037_RFA in relation to ZI037_REL (Islam)
-
-Facility Logic Checks Facility_S ZI037_RFA in relation to ZI037_REL (Buddhism)
-
-Facility Logic Checks Facility_P ZI037_RFA in relation to ZI037_REL (Buddhism)
-
-Facility Logic Checks Facility_S ZI037_RFA in relation to ZI037_REL (Buddhism or Hinduism)
-
-Facility Logic Checks Facility_P ZI037_RFA in relation to ZI037_REL (Buddhism or Hinduism)
-
-Facility points should not be called 'Place of Worship' per the EG. The FFN should be 'Religious Facility Logic Checks Activities' (930).
-
-Facility surfaces should not be called 'Place of Worship' per the EG. The FFN should be 'Religious Facility Logic Checks Activities' (930).
-
-Facility Logic Checks Facility surface doesn&apos;t intersect a building surface or point
-
-Facility surface with populated FFN does not intersect at least one building (or industrial furnace) surface or point with a populated FFN. Populate at least 1 bldg. and any other bldgs. that make Facility Logic Checks sense.
-
-Facility point with populated FFN does not intersect at least one building (or industrial furnace) surface or point with a populated FFN within 500m. Populate at least 1 bldg. and any other bldgs. Facility Logic Checks that make sense.
-
-Facility Logic Checks Facility point doesn&apos;t intersect a building surface or point within 500m
-
-Facility Logic Checks Religious activities facility surfaces should intersect a place of worship.
-
-Facility Logic Checks Religious activities facility points should intersect a place of worship within at least 500m.
-
-
-#----------------------------------------------------------------------
-
-
-Flare Pipe Logic Checks Flare Pipe_P SRL in relation to Hydrography_S
-
-
-#----------------------------------------------------------------------
-
-
-If Gantry_P: FFN contains default value and intersects Road_C or Cart Track_C or Railway_C or Railway Sidetrack_C or River_S or River_C or Canal_S or Canal_C, then high probability FFN = Gantry Logic Checks 480(Transport)
-
-
-#----------------------------------------------------------------------
-
-
-This tower point without a height is intersecting a tower point that does have a height. Select the towers identical with this call, open the attribute table, and delete the SELECTED towers WITHOUT Identical Tower Checks heights. DO NOT RUN AN AUTOMATED TOOL FOR THIS CALL.
-
-This tower point without a height is intersecting another tower point without a height. DO NOT MASS DELETE TOWERS IDENTICAL TO THIS CALL. Instead, run a tool like Production Delete Identical Tower Checks Duplicate Features. After, verify one point remains.
-
-This tower point without a height is intersecting another tower point without a height. DO NOT
-
-MASS DELETE TOWERS IDENTICAL TO THIS CALL. Instead, run a tool like Delete Identical that will Identical Tower Checks leave one point remaining. After, verify one point remains.
-
-This tower point that has a height is intersecting another tower point that has a height. DO NOT MASS DELETE TOWERS IDENTICAL TO THIS CALL. Instead, run a tool like Production Delete Identical Tower Checks Duplicate Features. After, verify one point remains.
-
-This tower point that has a height is intersecting another tower point that has a height. DO NOT MASS DELETE TOWERS IDENTICAL TO THIS CALL. Instead, run a tool like Delete Identical that will Identical Tower Checks leave one point remaining. After, verify one point remains.
-
-
-#----------------------------------------------------------------------
-
-
-Consider changing the IWT of this Lake or Reservoir to Pond because it does not meet project area Inland Waterbody Surface Logic Checks requirements unless it is a navigation landmark
-
-Inland Waterbody Surface Logic Checks If DMD is true, the inland waterbody should be snapped to a surface dam.
-
-Inland Waterbody Surface Logic Checksreservoir must have AZC and DMD set to true and TID set to false.
-
-Inland Waterbody Surface Logic Checksbasin must have AZC and MNS set to true and TID set to false.
-
-Inland Waterbody Surface Logic Checkswater-hole must have AZC, MNS, DMD, and TID set to false.
-
-Inland Waterbody Surface Logic Checkslandlocked sea must have AZC, MNS, and TID set to false.
-
-
-#----------------------------------------------------------------------
-
-
-Orphan Checks Orphan: Road, Cart Track, or Trail not connected to another Road, Cart Track, or Trail
-
-Orphan Checks Orphan: River curve not connected to appropriate hydro. and not end snapped to a vanishing point
-
-Orphan Checks Orphan: Aqueduct or Ditch curve not connected to appropriate hydro.
-
-Orphan Checks Orphan: Navigable Canal curve not connected to appropriate hydro.
-
-Orphan Checks Orphan: River, Ditch, or Aqueduct surface not connected to appropriate hydro.
-
-Orphan Checks Orphan: Navigable Canal surface not connected to appropriate hydro.
-
-Orphan Checks Orphan: Railway or Railway Sidetrack not connected to another Railway or Railway Sidetrack
-
-Orphan cable: Cables should be connected to the network. Either this cable does not intersect another cable, power substation, or electric power station, or it intersects another cable with a Orphan Checks different LOC.
-
-Orphan pipeline: Pipelines should be connected to the network. Either this pipeline does not Orphan Checks intersect another pipeline or pumping station, or it intersects another pipeline with a different LOC.
-
-
-#----------------------------------------------------------------------
-
-
-If Pylon_P: AT005_CAB contains default value, then high probability AT005_CAB = 6(Power Pylon Logic Checks Transmission Line)
-
-Pylon Logic Checks If Pylon_P: HGT contains default value, apply HGT value from intersecting Cable_C
-
-If Pylon_P: ZI032_TOS contains default value and ZI032_PYC= 1(&apos;A&apos;) or Pylon Logic Checks 4(&apos;Y&apos;), then high probability ZI032_TOS = 12(Truss)
-
-If Pylon_P: ZI032_TOS contains default value and ZI032_PYC= 3(&apos;I&apos;), then ZI032_TOS = Pylon Logic Checks 6(Mast)
-
-If Pylon_P: ZI032_PYM contains default value and AT005_CAB = 6(Power Transmission Line), then Pylon Logic Checks high probability ZI032_PYM = 5(Metal)
-
-If Pylon_P: ZI032_PYM contains default value and ZI032_PYC = 1(&apos;A&apos;) or Pylon Logic Checks 4(&apos;Y&apos;), then high probability ZI032_PYM = 5(Metal)
-
-Pylon Logic Checks Pylon_P intersecting Power_Substation_P
-
-Pylon Logic Checks H frame pylons should have a tower shape (ZI032_TOS) of Pole.
-
-Pylon Logic Checks T frame pylons should have a tower shape (ZI032_TOS) of Pole.
-
-Pylon Logic Checks A frame pylons should have a tower shape (ZI032_TOS) of Truss.
-
-I frame pylons should have a tower shape (ZI032_TOS) of either Mast, Pole, or Tubular. Choose Pylon Logic Checks Mast for very tall pylons.
-
-Pylon Logic Checks Y frame pylons cannot have a tower shape (ZI032_TOS) of Pole.
-
-
-#----------------------------------------------------------------------
-
-
-Populate the railway gauge (ZI017_GAW) for this railway yard, railway turntable, or roundhouse Railway Gauge Checks surface. Use 1.435 for the USA, Canada, and Mexico. Use 1.520 for Russia.
-
-Populate the railway gauge (ZI017_GAW) for this roundhouse or railway turntable point. Use 1.435 Railway Gauge Checks for the USA, Canada, and Mexico. Use 1.520 for Russia.
-
-Populate the railway gauge (ZI017_GAW) for this railway or railway sidetrack. Use 1.435 for the Railway Gauge Checks USA, Canada, and Mexico. Use 1.520 for Russia.
-
-The railway gauge (ZI017_GAW) for this roundhouse or railway turntable point is 1.520. Verify it is Railway Gauge Checks located in Russia.
-
-The railway gauge (ZI017_GAW) for this railway or railway sidetrack is 1.520. Verify it is located in Railway Gauge Checks Russia.
-
-The railway gauge (ZI017_GAW) for this railway yard, railway turntable, or roundhouse surface is Railway Gauge Checks 1.520. Verify it is located in Russia.
-
-Populate the railway gauge classification (ZI017_RGC) for this roundhouse or railway turntable Railway Gauge Checks point. Use Standard for the USA, Canada, and Mexico. Use Broad for Russia.
-
-Populate the railway gauge classification (ZI017_RGC) for this railway or railway sidetrack. Use Railway Gauge Checks Standard for the USA, Canada, and Mexico. Use Broad for Russia.
-
-Populate the railway gauge classification (ZI017_RGC) for this railway yard, railway turntable, or Railway Gauge Checks roundhouse surface. Use Standard for the USA, Canada, and Mexico. Use Broad for Russia.
-
-The railway gauge classification (ZI017_RGC) for this roundhouse or railway turntable point is Broad. Railway Gauge Checks Verify it is located in Russia.
-
-The railway gauge classification (ZI017_RGC) for this railway or railway sidetrack is Broad. Verify it Railway Gauge Checks is located in Russia.
-
-The railway gauge classification (ZI017_RGC) for this railway yard, railway turntable, or roundhouse Railway Gauge Checks surface is Broad. Verify it is located in Russia.
-
-The railway gauge and its classification (i.e., ZI017_GAW, ZI017_RGC) are not compatible for this railway yard, railway turntable, or roundhouse surface. Use 1.435 and Standard for the USA, Railway Gauge Checks Canada, and Mexico. Use 1.520 and Broad for Russia.
-
-The railway gauge and its classification (i.e., ZI017_GAW, ZI017_RGC) are not compatible for this railway or railway sidetrack. Use 1.435 and Standard for the USA, Canada, and Mexico. Use 1.520 Railway Gauge Checks and Broad for Russia.
-
-The railway gauge and its classification (i.e., ZI017_GAW, ZI017_RGC) are not compatible for this roundhouse or railway turntable point. Use 1.435 and Standard for the USA, Canada, and Mexico. Railway Gauge Checks Use 1.520 and Broad for Russia.
-
-Railway Line Logic Checks Railway_C coincident with Bridge_S should have identical PCFs
-
-
-#----------------------------------------------------------------------
-
-
-Rig Point Logic Checks Rig_P SRL in relation to Hydrography_S
-
-
-#----------------------------------------------------------------------
-
-
-Road Line Checks Road_C FCO validation in relation to SEP
-
-Road Line Checks Road_C LTN validation
-
-Road Line Checks Road_C ONE validation in relation to SEP
-
-If Road_C: RIN_ROI = 1(International) or 2(National Motorway) or 3(National) and ZI016_ROC Road Line Checks contains default value, then ZI016_ROC = 7(Rigid Pavement)
-
-If Road_C: RIN_ROI = 1(International) or 2(National Motorway) or 3(National) and ZI016_WTC Road Line Checks contains default value, then ZI016_WTC = 1(All Weather)
-
-If Road_C: RIN_ROI = 4(Secondary) or 5(Local) and RTY contains default value then high probability Road Line Checks RTY = Road (3)
-
-Road Line Checks Road_C coincident with Bridge_S should have identical PCFs
-
-Road Line Checks Road_C: MES in relation to SEP
-
-Road Line Checks Road_C WTC in relation to ROC
-
-Road Line Checks Road_C ZI016_WD1 in relation to Bridge_S WID
-
-Road Line Checks Road_C ZI016_WD1 in relation to Tunnel_S WID
-
-Road Line Checks Road_C interaction with Embankment_C
-
-Road Line Checks Roads on bridges should always be rigid (ZI016_ROC).
-
-
-#----------------------------------------------------------------------
-
-
-Solar Farm Logic Checks If Solar_Farm_S: PPO contains default value, then high probability PPO = 37(Electric Power)
-
-
-#----------------------------------------------------------------------
-
-
-This water well is within 3,000m of another water well. Unless a navigation landmark, thin these wells to reflect the 3,000m PSG spacing. If a navigation landmark, attribute LMC to True and do not Spacing Checks delete the well.
-
-
-#----------------------------------------------------------------------
-
-
-When not on a bridge, Cart Tracks and Trails should always be fair-weather (ZI016_WTC). If on a Trans Attribution Checks bridge, they must be all-weather.
-
-
-#----------------------------------------------------------------------
-
-
-Linear trans intersects area Navigable Canal without proper LOC/SBB/CWT attribution and/or Trans Hydro Intersection Issues accompanying Bridge/Tunnel
-
-Linear trans intersects area Aqueduct, Ditch, Rapids, River, Inland Waterbody, or Tidal Water Trans Hydro Intersection Issues without proper LOC/SBB/CWT attribution and/or accompanying Ford/Bridge/Tunnel
-
-Cart track or trail intersects area perennial Navigable Canal without proper LOC/SBB/CWT Trans Hydro Intersection Issues attribution and/or accompanying Bridge/Tunnel
-
-Cart track or trail intersects area perennial Aqueduct, Ditch, Rapids, River, or Inland Waterbody Trans Hydro Intersection Issues without proper LOC/SBB/CWT attribution and/or accompanying Ford/Bridge/Tunnel
-
-Cart track or trail intersects Tidal Water without proper LOC/SBB/CWT attribution and/or Trans Hydro Intersection Issues accompanying Ford/Bridge/Tunnel
-
-Significant and/or rigid trans line crossing area Aqueduct, Ditch, Rapids, or River. Check for bridge Trans Hydro Intersection Issues or tunnel structure.
-
-Significant and/or rigid trans line crossing area Navigable Canal. Check for bridge or tunnel Trans Hydro Intersection Issues structure.
-
-Linear trans intersects line Navigable Canal without proper LOC/SBB/CWT attribution and/or
-
-Trans Hydro Intersection Issues accompanying Bridge/Tunnel
-
-Linear trans intersects line Aqueduct without proper ATC/SBB/CWT attribution and/or Trans Hydro Intersection Issues accompanying Bridge/Tunnel
-
-Cart track or trail intersects line perennial Navigable Canal without proper LOC/SBB/CWT attribution Trans Hydro Intersection Issues and/or accompanying Bridge/Tunnel
-
-Cart track or trail intersects line perennial Aqueduct without proper ATC/SBB/CWT attribution Trans Hydro Intersection Issues and/or accompanying Bridge/Tunnel
-
-Significant and/or rigid trans line crossing line Aqueduct without proper ATC/SBB/CWT attribution Trans Hydro Intersection Issues and/or accompanying Bridge/Tunnel
-
-Significant and/or rigid trans line crossing line Navigable Canal without proper LOC/SBB/CWT Trans Hydro Intersection Issues attribution and/or accompanying Bridge/Tunnel
-
-Trans Hydro Intersection Issues Linear hydro is intertwined with a road or rail.
-
-Trans Hydro Intersection Issues Linear perennial hydro is intertwined with a cart track or trail.
-
-
-#----------------------------------------------------------------------
-
-
-Transportation Route Protection Structure Logic Checks If Trans_Route_Protect_Struct_P intersects Canal_C (50m), then TRS = 5(Canal)
-
-Transportation Route Protection Structure Logic Checks If Trans_Route_Protect_Struct_C intersects Canal_C (50m), then TRS = 5(Canal)
-
-Transportation Route Protection Structure Logic Checks If Trans_Route_Protect_Struct_S intersects Canal_C (50m), then TRS = 5(Canal)
-
-Transportation Route Protection Structure Logic Checks If Trans_Route_Protect_Struct_P intersects Canal_S (50m), then TRS = 5(Canal)
-
-Transportation Route Protection Structure If Trans_Route_Protect_Struct_C intersects Canal_S (50m), then TRS = 5(Canal) Logic Checks
-
-Transportation Route Protection Structure If Trans_Route_Protect_Struct_S intersects Canal_S (50m), then TRS = 5(Canal) Logic Checks
-
-
-#----------------------------------------------------------------------
-
-
-This inland waterbody is intersecting another inland waterbody, but the DMD attributes are different. Should DMD be identical for both? (If these waterbodies should be the same, merge Waterbody Merge Checks them.)
-
-This inland waterbody is intersecting another inland waterbody, but the IWT attributes are different. Should IWT be identical for both? (If these waterbodies should be the same, merge Waterbody Merge Checks them.)
-
-This inland waterbody is intersecting another inland waterbody, but the AZC attributes are different. Should AZC be identical for both? (If these waterbodies should be the same, merge Waterbody Merge Checks them.)
-
-This inland waterbody is intersecting another inland waterbody, but the MNS attributes are different. Should MNS be identical for both? (If these waterbodies should be the same, merge Waterbody Merge Checks them.)
-
-This inland waterbody is intersecting another inland waterbody, but the PCF attributes are different. Should PCF be identical for both? (If these waterbodies should be the same, merge Waterbody Merge Checks them.)
-
-This inland waterbody is intersecting another inland waterbody, but the TID attributes are different. Waterbody Merge Checks Should TID be identical for both? (If these waterbodies should be the same, merge them.)
-
-This inland waterbody is intersecting another inland waterbody, but the ZI024_HYP attributes are different. Should ZI024_HYP be identical for both? (If these waterbodies should be the same, Waterbody Merge Checks merge them.)
-
-
-#----------------------------------------------------------------------
-
-
-Wind Turbine Logic Checks If Wind_Turbine_P: GUG contains default value, then high probability GUG = 1000(False)
-
-If Wind_Turbine_P: SRL contains default value, and Wind_Turbine intersects Tidal_Water_S, then Wind Turbine Logic Checks highly probable that SRL = 1(Offshore)
-
-If Wind_Turbine_P: SRL contains default value, and Wind_Turbine does not intersect Wind Turbine Logic Checks Tidal_Water_S, then highly probable that SRL = 2(Inland)
-
-Wind Turbine Logic Checks If Wind_Turbine_P: TOS contains default value, then high probability TOS = 13(Tubular)
+####################################
+##  Trans Attribute Dependencies  ##
+####################################
+Bridge
+	Attributes:
+		[BOT]	Bridge Opening Type
+			Default [BOT] = 17(Fixed)
+		[BSC]	Bridge Structure Type
+			Default [BSC] = 15(Slab)
+		[RFD]	Roofed
+			Default [RFD] = 1000(False)
+		[TRS]	Transportation System Type
+			if Bridge.overlaps(Road)
+				[TRS] = 13(Road)
+			if Bridge.overlaps(Railway/RailwaySidetrack)
+				[TRS] = 12(Railway)
+			if Bridge.overlaps(CartTrack)
+				[TRS] =
+			if Bridge.overlaps(Aqueduct)
+				[TRS] =
+		[WID]	Width
+			Default [WID] =
+
+CartTrack
+	Attributes:
+		[ACC]	Horizontal Accuracy Category
+			Default [ACC] =
+		[CWT]	Contained within Tunnel
+			Default [CWT] =
+		[LOC]	Vertical Relative Location
+			Default [LOC] =
+		[RLE]	Relative Level
+			Default [RLE] =
+		[SBB]	Supported by Bridge Span
+			Default [SBB] =
+		[TRS]	Transportation System Type
+			Default [TRS] =
+		[WID]	Width
+			Default [WID] =
+		[ZI016_WTC]	Route Pavement Information : Road Weather Restriction
+			Default [ZI016_WTC] =
+
+CausewayStructure
+	Attributes:
+		[MCC]	Structural Material Type
+			Default [MCC] =
+		[TRS]	Transportation System Type
+			Default [TRS] =
+		[WLE]	Water Level Effect
+			Default [WLE] =
+
+Ford
+	Attributes:
+		[TRS]	Transportation System Type
+			Default [TRS] =
+		[ZI016_ROC]	Route Pavement Information : Route Surface Composition
+			Default [ZI016_ROC] =
+
+Railway
+	Attributes:
+		[ACC]	Horizontal Accuracy Category
+			Default [ACC] =
+		[CWT]	Contained within Tunnel
+			Default [CWT] =
+		[LOC]	Vertical Relative Location
+			Default [LOC] =
+		[LTN]	Track or Lane Count
+			Default [LTN] =
+		[RLE]	Relative Level
+			Default [RLE] =
+		[RRC]	Railway Use
+			Default [RRC] =
+		[RTA]	Linear Feature Arrangement
+			Default [RTA] =
+		[RWC]	Railway Class
+			Default [RWC] =
+		[SBB]	Supported by Bridge Span
+			Default [SBB] =
+		[ZI017_GAW]	Track Information : Railway Gauge
+			Default [ZI017_GAW] = 1.435 for the USA, Canada, and Mexico / 1.520 for Russia
+		[ZI017_RGC]	Track Information : Railway Gauge Classification
+			Default [ZI017_RGC] = 3(Standard) for the USA, Canada, and Mexico / 1(Broad) for Russia
+		[ZI017_RIR]	Track Information : Railway in Road
+			Default [ZI017_RIR] =
+		[ZI017_RRA]	Track Information : Railway Power Method
+			Default [ZI017_RRA] =
+
+RailwaySidetrack
+	Attributes:
+		[ACC]	Horizontal Accuracy Category
+			Default [ACC] =
+		[CWT]	Contained within Tunnel
+			Default [CWT] =
+		[LOC]	Vertical Relative Location
+			Default [LOC] =
+		[LTN]	Track or Lane Count
+			Default [LTN] =
+		[RLE]	Relative Level
+			Default [RLE] =
+		[RSA]	Branch Railway Type
+			Default [RSA] =
+		[SBB]	Supported by Bridge Span
+			Default [SBB] =
+		[ZI017_GAW]	Track Information : Railway Gauge
+			Default [ZI017_GAW] = 1.435 for the USA, Canada, and Mexico / 1.520 for Russia
+		[ZI017_RGC]	Track Information : Railway Gauge Classification
+			Default [ZI017_RGC] = 3(Standard) for the USA, Canada, and Mexico / 1(Broad) for Russia
+		[ZI017_RIR]	Track Information : Railway in Road
+			Default [ZI017_RIR] =
+		[ZI017_RRA]	Track Information : Railway Power Method
+			Default [ZI017_RRA] =
+
+RailwayYard
+	Attributes:
+		[FFN]	Feature Function
+			Default [FFN] =
+		[ZI017_GAW]	Track Information : Railway Gauge
+			Default [ZI017_GAW] = 1.435 for the USA, Canada, and Mexico / 1.520 for Russia
+		[ZI017_RGC]	Track Information : Railway Gauge Classification
+			Default [ZI017_RGC] = 3(Standard) for the USA, Canada, and Mexico / 1(Broad) for Russia
+		[ZI017_RRA]	Track Information : Railway Power Method
+			Default [ZI017_RRA] =
+
+Road
+	Attributes:
+		[ACC]	Horizontal Accuracy Category
+			Default [ACC] =
+		[CWT]	Contained within Tunnel
+			Default [CWT] =
+		[FCO]	Feature Configuration
+			Default [FCO] =
+		[LOC]	Vertical Relative Location
+			Default [LOC] =
+		[LTN]	Track or Lane Count
+			Default [LTN] =
+		[MES]	Median Present
+			Default [MES] =
+		[MWG]	Centerline Spacing
+			Default [MWG] =
+		[ONE]	One-way
+			Default [ONE] =
+		[RIN_ROI]	Route Identification <route designation type>
+			Default [RIN_ROI] =
+		[RLE]	Relative Level
+			Default [RLE] =
+		[ROR]	Road Interchange Ramp
+			Default [ROR] =
+		[RTY]	Roadway Type
+			Default [RTY] =
+		[SBB]	Supported by Bridge Span
+			Default [SBB] =
+		[SEP]	Divided
+			Default [SEP] =
+		[THR]	Through Route
+			Default [THR] =
+		[ZI016_ROC]	Route Pavement Information : Route Surface Composition
+			Default [ZI016_ROC] =
+		[ZI016_WD1]	Route Pavement Information : Route Minimum Travelled Way Width
+			Default [ZI016_WD1] =
+		[ZI016_WTC]	Route Pavement Information : Road Weather Restriction
+			Default [ZI016_WTC] =
+
+Trail
+	Attributes:
+		[ACC]	Horizontal Accuracy Category
+			Default [ACC] =
+		[CWT]	Contained within Tunnel
+			Default [CWT] =
+		[LOC]	Vertical Relative Location
+			Default [LOC] =
+		[RLE]	Relative Level
+			Default [RLE] =
+		[SBB]	Supported by Bridge Span
+			Default [SBB] =
+		[WID]	Width
+			Default [WID] =
+		[ZI016_WTC]	Route Pavement Information : Road Weather Restriction
+			Default [ZI016_WTC] =
+
+Tunnel
+	Attributes:
+		[TRA]	Pedestrian Traversable
+			Default [TRA] =
+		[TRS]	Transportation System Type
+			Default [TRS] =
+		[WID]	Width
+			Default [WID] =
+
+Embankment
+	Attributes:
+		[FIC]	Embankment Type
+			Default [FIC] =
+		[MCC]	Structural Material Type
+			Default [MCC] =
+		[TRS]	Transportation System Type
+			Default [TRS] =
+
+
+
+
+
+	Road
+	#----------------------------------------------------------------------
+	Road_C FCO in relation to SEP
+
+	Road_C: MES in relation to SEP
+
+	Road_C ONE relation to SEP
+
+	Road_C LTN in validation
+
+	If Road_C: RIN_ROI = 1(International), 2(National Motorway), or 3(National) and ZI016_ROC contains default value
+	  - ZI016_ROC = 7(Rigid Pavement)
+
+	If Road_C: RIN_ROI = 1(International), 2(National Motorway), or 3(National) and ZI016_WTC contains default value
+	  - ZI016_WTC = 1(All Weather)
+
+	If Road_C: RIN_ROI = 4(Secondary) or 5(Local) and RTY contains default value
+	  - RTY = Road (3)
+
+	Road_C WTC in relation to ROC
+
+	Road_C ZI016_WD1 in relation to Bridge_S WID
+
+	Road_C ZI016_WD1 in relation to Tunnel_S WID
+
+	Road_C interaction with Embankment_C
+
+	Roads on bridges should always be rigid (ZI016_ROC).
+
+	When not on a bridge, Cart Tracks and Trails should always be fair-weather (ZI016_WTC). If on a bridge, they must be all-weather.
+
+
+
+	Dependencies
+	#----------------------------------------------------------------------
+	Road
+	#-----------------------------------
+	if 'Bridge/Tunnel/CausewayStructure/Embankment WID' <= Road/Rail ZI016_WD1/ZI017_GAW, set WID = WD1/GAW * 1.5
+	Update all mismatched LTN/WD1 pairs based on the chart below
+			LTN  WD1
+			1    2.5
+			2    5
+			3    7.5
+			4    10
+			6    15
+			8    20
+			10   25
+	if Road 'zi026_ROC' = 'Stabilized Earth', set 'zi026_ROC' = 'Flexible Pavement'
+	if Road 'zi026_ROC' = 'Concrete' or 'Asphalt', set 'zi026_ROC' = 'Rigid Pavement'
+	if Road 'zi026_ROC' == 'Rigid Pavement' AND 'zi026_WTC' == 'Fair-Weather', set 'zi026_WTC' = 'All-Weather'
+	if Road 'zi026_ROC'/'zi026_WTC' == 'Flexible Pavement'/'Fair-Weather' AND 'LTN'/'zi016_WD1' != 1/2.5, set 'LTN'/'zi016_WD1' = 1/2.5
+	if Road 'zi026_ROC'/'zi026_WTC' == 'Rigid Pavement'/'All-Weather' AND 'LTN'/'zi016_WD1' == 1/2.5, set 'LTN'/'zi016_WD1' = 2/5
+	if Cart Track 'zi026_WTC' == 'All-Weather', set 'zi026_WTC' = 'Fair-Weather'
+	if Cart Track 'WID' > 2, set 'WID' = 2
+	A 'Road/Rail/Sidetrack/CartTrack' shall always have coincident start and end nodes with any coincident 'Bridge/Tunnel/CausewayStructure/Embankment' feature
+	if 'Road/Rail/Sidetrack/CartTrack' SHARE_A_LINE_SEGMENT_WITH 'Bridge/Tunnel/CausewayStructure/Embankment' AND NOT IDENTICAL, edge snap 'Bridge/Tunnel/CausewayStructure/Embankment' to 'Road/Rail/Sidetrack/Carttrack'
+	use road.intersect(bridge) for new split road and road.symmetric_difference(bridge) for corrected original road
+	if 'Bridge/Tunnel/CausewayStructure/Embankment' SHARE_A_LINE_SEGMENT_WITH 'Road/Rail/Sidetrack/CartTrack' AND 'Bridge/Tunnel/CausewayStructure/Embankment zi026_ctuu' != 'Road/Rail/Sidetrack/CartTrack zi026_ctuu', set 'Bridge/Tunnel/CausewayStructure/Embankment zi026_ctuu' = 'Road/Rail/Sidetrack/CartTrack zi026_ctuu'
+	IF any Road is coincident with a Bridge
+		- SBB = True
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	IF any Road is coincident with a Tunnel
+		- SBB = False
+		- CWT = True
+		- RLE = 'Not Applicable'
+		- LOC = 'Below Ground Surface'
+	IF any Road is coincident with a Causeway Structure, or Dam, or Embankment
+		- SBB = False
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	IF a Road is coincident with a Ford
+		- SBB = False
+		- CWT = False
+		- RLE = 'Not Applcable'
+		- LOC = 'On Water Body Bottom'
+	If Road has centroid within BUA
+		- THR = True (Through Route)
+
+	•	Before anything else, integrate roads at all scales with default tolerance to get all intersection vertices
+	•	Then Dissolve all Roads and unsplit lines with PSG attributes and metadata fields to pick up any shattered bits
+	•	Then run Feature to Line to split Roads at intersections. Work backwards thru the scales so higher scale roads aren't split at every 12.5k road, but 12.5k roads are split wherever they need to be.
+	•	Use a layer for each scale. then extract that scale from the combined output.
+	•	500k Feature to Line
+	•	250k + 500k layers Feature to Line. Extract 250k from output. etc.
+	•	Alternatively, use the Intersect and Split Points at Line method with the 4 scale layers. might be more efficient for processing.
+	•	Intersect 500k with itself and split with those points. then intersect 250k with 500k and split 250k with those points. etc.
+	•   Integrate Roads with BUAs @ 0.01m tolerance to add and collapse intersection vertices (tolerance based on GAIT duplicate vertices check)
+	•	Edge snap Roads to BUAs @ 1m tolerance. (tolerabce based on GAIT line-area sliver check)
+	•	Select any Building points or surfaces that have a PCF of ‘noInformation’ and mass attribute them as ‘Intact’.
+
+	Cart Track
+	#-----------------------------------
+	If Cart Track is coincident with Bridge
+		- SBB = True
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	If Cart Track is coincident with Ford
+		- SBB = False
+		- CWT = False
+		- RLE = 'No Information'
+		- LOC = 'On Water Body Bottom'
+	If Cart Track is coincident with Tunnel
+		- SBB = False
+		- CWT = True
+		- RLE = 'No Information'
+		- LOC = 'Below Ground Surface'
+	If Cart Track is coincident with Causeway Structure, Dam, or Embankment
+		- SBB = False
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	If Cart Track is coincident with Bridge, Causeway Structure, Dam, Ford, Embankment or Tunnel
+		- 'PCF' must match coincident feature
+		- TRS = 'Road' for coincident feature
+
+	Railway & Railway Sidetrack
+	#-----------------------------------
+	If Railway or Sidetrack is coincident with Bridge
+		- SBB = True
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	If Railway or Sidetrack is coincident with a Tunnel
+		- SBB = False
+		- CWT = True
+		- RLE = 'Not Applicable'
+		- LOC = 'Below Ground Surface'
+	If Railway or Sidetrack is coincident with a Causeway Structure or Embankment
+		- SBB = False
+		- CWT = False
+		- RLE = 'Raised'
+		- LOC = 'On Surface'
+	If Railway or Sidetrack is coincident with Bridge, Causeway Structure, Dam, Embankment or Tunnel
+		- 'PCF' must match coincident feature
+		- TRS = 'Railway' for coincident feature
+
+	Cart Track
+	#-----------------------------------
+	If Cart Track is coincident with Bridge, Causeway Structure, Dam, Ford, Embankment or Tunnel
+		- 'PCF' must match coincident feature
+		- TRS = 'Road' for coincident feature
+
+
+
+
+
+
+####################################
+##  Hydro Attribute Dependencies  ##
+####################################
+
+	Aqueduct
+	#----------------------------------------------------------------------
+	if ATC == Underground or Underwater
+	  - RLE = Not Applicable
+		- CDA = True
+		- LMC = False
+
+	if ATC == Qanat and not intersecting Qanat Shaft Point
+	  - ATC = Surface
+
+
+	Canal
+	#----------------------------------------------------------------------
+	Canal_S crossed by hydro surface boundary check
+
+	Canal_S crossed by hydro curve
+
+
+	Dam
+	#----------------------------------------------------------------------
+	If Dam: TRS contains default value and intersects Road_C or Cart_Track_C
+	  - TRS = 13(Road)
+
+	If Dam: TRS contains default value and intersects Railway_C or Railway_Sidetrack_C
+	  - TRS = 12(Railway)
+
+	If Dam: TRS contains default value and intersects Trail_C
+	  - TRS = 9(Pedestrian)
+
+	If Dam: DFU == 4(Hydroelectric Power Generation) and MCC == -999999
+	  - MCC = 21(Concrete)
+
+	If Dam: WOC <= 0 and TRS == 13(Road), 9(Pedestrian), or 12(Railway)
+	  - WOC = WID of intersecting Road, Cart_Track, Trail or Railway_C: ZI017_GAW
+
+	If Dam: TRS == 13(Road), 12(Railway), or 9(Pedestrian)
+	  - WOC >= ZI016_WD1 + 2 of Road_C
+	  - WOC >= ZI017_GAW + 2 of Railway_C or Railway_Sidetrack_C
+	  - WOC >= WID + 2 of Trail_C or Cart_Track_C
+
+	If Dam: TRS contains default value and does not intersect Road, Cart_Track, Railway, Railway_Sidetrack or Trail_C
+	  - TRS = 8(No Transportation System)
+
+	If Dam: DFU contains default value and intersects an Inland_Waterbody_S with IWT == 4(Reservoir)
+	  - DFU = 3(Flood Control)
+
+	If Dam: DFU contains default value and intersects a Lock
+	  - DFU = 2(Navigation)
+
+	If Dam: DFU == 2(Navigation) or 4(Hydroelectric Power Generation) and MCC == -999999
+	  - MCC = 21(Concrete)
+
+
+	Inland Waterbody
+	#----------------------------------------------------------------------
+	Inland Waterbody reservoir must have AZC and DMD set to true and TID set to false.
+
+	Inland Waterbody basin must have AZC and MNS set to true and TID set to false.
+
+	Inland Waterbody water-hole must have AZC, MNS, DMD, and TID set to false.
+
+	Inland Waterbody landlocked sea must have AZC, MNS, and TID set to false.
+
+	If Inland Waterbody intersecting another inland waterbody and DMD attributes are different
+	  - DMD = DMD of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and IWT attributes are different
+	  - IWT = IWT of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and AZC attributes are different
+	  - AZC = AZC of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and MNS attributes are different
+	  - MNS = MNS of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and PCF attributes are different
+	  - PCF = PCF of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and TID attributes are different
+	  - TID = TID of larger area IWB
+
+	If Inland Waterbody intersecting another inland waterbody and ZI024_HYP attributes are different
+	  - ZI024_HYP = ZI024_HYP of larger area IWB
+
+
+	Dependencies
+	#----------------------------------------------------------------------
+	Dam
+	#-----------------------------------
+	If Dam is coincident with Cart Track or Road
+	  - TRS = 'Road'
+	If Dam is coincident with Railway or Railway Sidetrack
+	  - TRS = 'Railway'
+	If Dam is coincident with Sidewalk or Trail
+	  - TRS = 'Pedestrian'
+	If Dam WID <= Road/Rail ZI016_WD1/ZI017_GAW
+	  - WID = WD1/GAW * 1.5
+
+	Aqueduct
+	#-----------------------------------
+	ATC = Aqueduct Type
+	CWT = Contained within Tunnel
+	CDA = Covered Drain
+	LMC = Navigation Landmark
+	RLE = Relative Level
+	SBB = Supported by Bridge Span
+	PCF = Physical Condition
+	If Aqueduct is not coincident with any feature
+	  - ATC = 'Surface' (5)
+	  - CWT = False
+	  - RLE = 'Level' (2)
+	  - SBB = False
+	If Aqueduct is coincident with Bridge (AQ040)
+	  - ATC = 'Surface' (5)
+	  - CWT = False
+	  - CDA = False
+	  - RLE = 'Raised' (1)
+	  - SBB = True
+	If Aqueduct is coincident with Embankment (DB090)
+	  - ATC = 'Surface' (5)
+	  - CWT = False
+	  - CDA = False
+	  - RLE = 'Raised' (1)
+	  - SBB = False
+	If Aqueduct is coincident with Causeway Structure (AQ063)
+	  - ATC = 'Surface' (5)
+	  - CWT = False
+	  - CDA = False
+	  - LMC = True
+	  - RLE = 'Raised' (1)
+	  - SBB = False
+	If Aqueduct is coincident with Tunnel (AQ130)
+	  - ATC = 'Underground' (3)
+	  - CWT = True
+	  - CDA = True
+	  - LMC  = False
+	  - RLE = 'Not Applicable' (998)
+	  - SBB = False
+	If Aqueduct is coincident with Qanat Shaft Point (BH012)
+	  - ATC = 'Qanat' (6)
+	  - CWT = True
+	  - CDA = True
+	  - LMC = False
+	  - RLE = 'Not Applicable' (998)
+	  - SBB = False
+	If Aqueduct SBB == False AND ATC != 'Surface'
+	  - RLE = 'Not Applicable' (998)
+	If Aqueduct is coincident with Bridge, Causeway Structure, Embankment, or Tunnel
+	  - 'PCF' must match coincident feature
+	  - TRS = 'Aqueduct' for coincident feature
+
+	Canal
+	#-----------------------------------
+	LOC = Vertical Relative Location
+	SBB = Supported by Bridge Span
+	RLE = Relative Level
+	CWT = Contained Within Tunnel
+	CDA = Covered Drain
+	If Canal is coincident with Bridge (AQ040)
+	  - LOC = 'On Surface' (44)
+	  - SBB = True
+	  - RLE = 'Raised' (1)
+	  - CWT = False
+	  - CDA = False
+	If Canal is coincident with Causeway Structure (AQ063)
+	  - LOC = 'On Surface' (44)
+	  - SBB = False
+	  - RLE = 'Raised' (1)
+	  - CWT = False
+	  - CDA = False
+	If Canal is coincident with Embankment (DB090)
+	  - LOC = 'On Surface' (44)
+	  - SBB = False
+	  - RLE = 'Raised' (1)
+	  - CWT = False
+	  - CDA = False
+	If Canal is coincident with Tunnel (AQ130)
+	  - LOC = 'Below Ground Surface' (40)
+	  - SBB = False
+	  - RLE = 'Level' (2)
+	  - CWT = True
+	  - CDA = True
+	If Canal is coincident with Bridge, Causeway Structure, Embankment, or Tunnel
+	  - 'PCF' must match coincident feature
+
+	Vanishing Point
+	#-----------------------------------
+	Vanishing Point must be coincident with a terminal node of River curve or on the perimeter of River surface
+	If Vanishing Point is coincident with River
+	  - Vanishing Point WST = River WST
+	  - 'No Information' (-999999)
+	  - 'Dissipating' (1)
+	  - 'Disappearing' (2)
+	  - 'Sinkhole' (3)
+	  - 'Hole' (4)
+	  - 'Other' (999)
+
+
+
+
+
+
+######################################
+##  Utility Attribute Dependencies  ##
+######################################
+
+	Cable
+	#----------------------------------------------------------------------
+	If Cable_C: CAB contains default value and intersects Power_Substation or Electric_Power_Station or Wind_Farm
+	  - CAB = 6(Power Transmission Line)
+
+	If Cable_C intersects Pylon_P and LOC contains default value
+	  - LOC = 45(Above Surface)
+
+	If Cable_C: TST contains default value
+	  - TST = 1(Symmetric Catenary)
+
+	If Cable_C: CAB == default
+	  - CAB = intersecting Pylons dominant AT005_CAB value
+		if Pylon_P: AT005_CAB == default
+		  - AT005_CAB = intersecting Cable CAB
+	  if Pylon_P: AT005_CAB != Cable: CAB
+		  - AT005_CAB = CAB
+
+	If Cable_C LOC != Above Surface
+	  - LOC = Above Surface
+		- Cable_C Vertical Relative Location (LOC) cannot be No Information, On Waterbody Bottom, Below Waterbody Bottom, Below Ground Surface, On Surface, Above Waterbody Bottom, or Below Waterbody Surface
+
+
+	Electric_Power_Station
+	#----------------------------------------------------------------------
+	If Electric_Power_Station: POS contains default value and intersects a Smokestack (50m)
+	  - POS = 4(Thermal)
+
+	If Electric_Power_Station: POS contains default value and intersects a Dam (50m)
+	  - POS = 2(Hydro-electric)
+
+
+	Flare_Pipe
+	#----------------------------------------------------------------------
+	Flare_Pipe_P SRL in relation to Hydrography_S
+
+
+	Pylon
+	#----------------------------------------------------------------------
+	If Pylon_P: AT005_CAB contains default value
+	  - AT005_CAB = 6(Power Transmission Line)
+
+	If Pylon_P: HGT contains default value
+	  - HGT = intersecting Cable_C HGT
+
+	If Pylon_P: ZI032_TOS contains default value and ZI032_PYC= 1 or 4
+	  - ZI032_TOS = 12(Truss)
+
+	If Pylon_P: ZI032_TOS contains default value and ZI032_PYC= 3
+	  - ZI032_TOS = 6(Mast)
+
+	If Pylon_P: ZI032_PYM contains default value and AT005_CAB = 6(Power Transmission Line)
+	  - ZI032_PYM = 5(Metal)
+
+	If Pylon_P: ZI032_PYM contains default value and ZI032_PYC = 1 or 4
+	  - ZI032_PYM = 5(Metal)
+
+	H frame pylons should have a tower shape (ZI032_TOS) of Pole.
+
+	T frame pylons should have a tower shape (ZI032_TOS) of Pole.
+
+	A frame pylons should have a tower shape (ZI032_TOS) of Truss.
+
+	I frame pylons should have a tower shape (ZI032_TOS) of either Mast, Pole, or Tubular. Choose Mast for very tall pylons.
+
+	Y frame pylons cannot have a tower shape (ZI032_TOS) of Pole.
+
+
+	Wind_Turbine
+	#----------------------------------------------------------------------
+	If Wind_Turbine_P: GUG contains default value
+	  - GUG = 1000(False)
+
+	If Wind_Turbine_P: SRL contains default value and Wind_Turbine within 35m of Tidal_Water_S
+	  - SRL = 1(Offshore)
+
+	If Wind_Turbine_P: SRL contains default value and Wind_Turbine not within 35m of Tidal_Water_S
+	  - SRL = 2(Inland)
+
+	If Wind_Turbine_P: TOS contains default value
+	  - TOS = 13(Tubular)
+
+
+	Dependencies
+	#----------------------------------------------------------------------
+	** Defaults **
+	Pylon Defaults
+	  - CST = False
+	Cable Defaults
+
+	#-----------------------------------
+	If Pylon HGT != Cable HGT
+	  - Pylon HGT = Cable HGT
+	If Pylon CAB != Cable CAB
+	  - Pylon CAB = Cable CAB
+	If Pylon/Cable HGT >= 15m and zi026_ctuu != 500000
+	  - zi026_ctuu = 500000
+	  - CAB = 'Power Transmission Line' (6)
+	If Pylon/Cable HGT < 15m and zi026_ctuu != 50000
+	  - zi026_ctuu = 50000
+	  - CAB = 'Power Distribution Line' (2)
+	If ElectricPowerStation POS == 'Hydro-electric' (2) or 'Tidal' (5)
+	  - Must be contained within or share an edge with a River, InlandWaterbody or TidalWater
+	If ElectricPowerStation is contained by OR coincident with NuclearReactorContainment feature
+	  - POS = 'Nuclear' (3)
+
+	#-----------------------------------
+	OWO = Waterbody Overhead Obstruction
+	If Pipeline OWO = True
+	  - Must be within a surface or coincident curve of Tidal Water, Inland Waterbody or River
+	If Pipeline is coincident with Causeway Structure (AQ063) or Embankment (DB090)
+	  - RLE = 'Raised'
+	If Pipeline is coincident with Bridge
+	  - SBB = True
+	  - CWT = False
+	  - RLE = 'No Information'
+	  - LOC = 'On Surface'
+	If Pipeline is coincident with Tunnel
+	  - SBB = False
+	  - CWT = True
+	  - RLE = 'Not Applicable'
+	  - LOC = 'Below Ground Surface'
+	If Pipeline is coindicent with Bridge, Causeway Structure, Dam, Ford, Embankment or Tunnel
+	  - 'PCF' must match coincident feature
+
+	#-----------------------------------
+	Things it won't be able to do:
+	  - Check or change network consistency of 'Cable Type' or 'Cable HGT'
+		- Snap Utility features that have been converted from surfaces to points or points to surfaces
+	    This needs to be done manually by the analyst that creates the feature
+	  - Any overall network analysis. This would require a complete overhaul in how we handle Utility networks
+
+
+
+
+
+
+######################################
+##  Culture Attribute Dependencies  ##
+######################################
+
+	Building
+	#----------------------------------------------------------------------
+	For CACI:
+	if zi037_REL == Mixed and/or No Designation
+	  - zi037_REL = noInformation
+		- if zi037_RFA != noInformation
+		  - zi037_RFA = noInformation
+	if zi037_RFA != noInformation
+	  - FFN = Place of Worship
+
+	Building Point Logic Checks Building_P ZI037_RFA is populated without a valid ZI037_REL value
+
+	Building Point Logic Checks Building_P ZI037_REL is populated without a valid ZI037_RFA value
+
+	Building Point Logic Checks Building_P FFN in relation to ZI037_RFA
+
+	Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Christianity)
+
+	Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Islam)
+
+	Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Buddhism)
+
+	Building Point Logic Checks Building_P ZI037_RFA in relation to ZI037_REL (Buddhism/Hinduism)
+
+
+	Facility
+	#----------------------------------------------------------------------
+	if Facility ZI037_RFA is populated and FFN == 'Place of Worship'
+	  - FFN = 'Religious Activities' (930)
+
+	if Facility FFN = 'Place of Worship' or 'Religious Activities' and ZI037_RFA is not populated
+	  - FFN = 'noInformation'
+
+	If Facility surface with populated FFN does not intersect at least one building surface or point with a populated FFN.
+	  - Populate at least 1 bldg with matching FFN
+	  - if Facility FFN == 'Religious Activities'
+			- Populate at least 1 bldg with FFN = 'Place of Worship'
+
+	Facility point doesn't intersect a building surface or point within 500m
+
+
+
+
+
+
+########################################
+##  Landcover Scaler and Attribution  ##
+########################################
+
+N/A
+
+
+
+
+########################
+##  Auto PCF Updater  ##
+########################
+
+N/A
+
+
+
+
+########################
+##  DVOF Pre-Deletes  ##
+########################
+
+N/A
+
+
+
+
+#----------------------------------------------------------------------#
+#                             Code Testing                             #
+#----------------------------------------------------------------------#
+
+## Only work with version = NULL, HEX, MAX? Check if we're only resonsible for our version stuff
+## Query everything similar to RBJ to limit loading too many features
+
+	sub_dam_s = 100330     # Dam_S
+	sub_cart_c = 100150    # CartTrack_C
+	sub_road_c = 100152    # Road_C
+	sub_rail_c = 100143    # Railway_C
+	sub_rrsidetrack_c = 100144    # Railway_Sidetrack_C
+
+	populated = lambda x: x is not None and str(x).strip() != '' and x != -999999 # Function that returns boolean of if input field is populated or empty or default
+
+	dam_fields = ['woc', 'trs', 'SHAPE@']
+	trans_fields = ['ltn', 'fcsubtype', 'zi017_gaw', 'SHAPE@']
+	# For each dam:
+	#
+	#   if woc is -999999 or null:
+	#      For each trans ground curve:
+	#           if the dam and the trans ground curve intersects:
+	#               populate the woc field of the dam based on the ltn of the trans ground curve
+	#               ***Formula: woc = ltn*2.5 + 2***
+	#               ***CartTracks are to be treated like ltn = 1***
+	with ap.da.UpdateCursor(DamsFC, dam_fields) as ucursor:
+		for urow in ucursor:
+			dam_shape = urow[-1] # 'SHAPE@'
+			dam_woc = urow[0] # 'woc'
+			dam_trs = urow[1] # 'trs'
+			#totDamCnt += 1
+			with ap.da.SearchCursor(TransFC, trans_fields) as scursor:
+				for srow in scursor:
+					trans_shape = srow[-1] # 'SHAPE@'
+					trans_ltn = srow[0] # 'ltn'
+					trans_subtype = srow[1] # 'fcsubtype'
+					trans_gaw = srow[2] # 'zi017_gaw'
+					if not dam_shape.disjoint(trans_shape):
+						if populated(dam_woc): #if woc is populated
+							if not populated(dam_trs): # if trs is not populated
+								if (trans_subtype == sub_cart_c or trans_subtype == sub_road_c):
+									urow[1] = 13 # Set dam_trs
+									ucursor.updateRow(urow)
+									#updateCnt += 1
+									break
+								elif trans_subtype == sub_rail_c or trans_subtype == sub_rrsidetrack_c:
+									urow[1] = 12 # Set dam_trs
+									ucursor.updateRow(urow)
+									#updateCnt += 1
+									break
+							break
+						elif trans_subtype == sub_cart_c or (trans_subtype == sub_road_c and trans_ltn == 1):
+							urow[0] = 4.5 # Set dam_woc
+							urow[1] = 13 # Set dam_trs
+							ucursor.updateRow(urow)
+							#updateCnt += 1
+							break
+						elif trans_subtype == sub_rail_c or trans_subtype == sub_rrsidetrack_c:
+							urow[0] = round(trans_gaw +2, 1) # Set dam_woc
+							urow[1] = 12 # Set dam_trs
+							ucursor.updateRow(urow)
+							#updateCnt += 1
+							break
+						else:
+							urow[0] = trans_ltn * 2.5 + 2 # Set dam_woc
+							urow[1] = 13 # Set dam_trs
+							ucursor.updateRow(urow)
+							#updateCnt += 1
+							break
+				else:
+					noTransCnt += 1
+					if not populated(dam_trs):
+						urow[1] = 8 # Set dam_trs
+						ucursor.updateRow(urow)
+						#updateCnt += 1
