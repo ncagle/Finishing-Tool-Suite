@@ -38,18 +38,64 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
 #   __(.)< ‾
 #~~~\___)~~~
 
-#----------------------------------------------------------------------
-
-# To Do List:
-#### 4 hashtags means things to be updated
-## 2 hashtags means recent changes/updates
 
 
+'''
+╔═════════════════╗
+║ Notes and To-Do ║
+╚═════════════════╝
+
+#### 4 hashtags in the code means things to be updated
+## 2 hashtags in the code means recent changes/updates
+
+#### Update Plans
+  - Add option to choose scale to run on.
+  - Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the
+	 input TDS. Just restart ArcMap and try again.
+  - RefreshCatalog for TDS at start of run to evade NoneType error for new copies of databases that ArcMap can't find for dumb reasons
+  - Add mass select option at the top. option for Interim run that only does the bare minimum and tells the user to ignore things like UFI errors. option to check
+    all the final finishing options. option to check everything (except caci swap)
 
 
+####################################
+# - Switch the order of Delete Identical Features and Hypernova Burst Multipart so that any kickback multiparts are exploded and then checked for duplicates.
+#   Apparently that's a thing that can happen in the data and needs to be checked for in this order.
+####################################
 
 
-#----------------------------------------------------------------------
+####################################
+# - Descale Buildings in BUAs should leave buildins of VO HGT >=46m
+####################################
+
+
+####################################
+# - Don't make fishnet if no trans/hydro/util
+# - Be sure that fishnet is no longer tied to hydro curves. use new arcpy.env.extent.polygon --> mem_fc/the_grid method
+# - Line 797. This bit. change to extent polygon instead of minimum bounding geometry.
+# - Also use get_count or feature report to guage how much to partition grid chunks.
+####################################
+
+Update UFI. Maybe switch to select by attribute with some fancy footwork to limit the time spent iterating a cursor over 5 million buildings before doing the updating part.
+
+## Recent Changes
+  - Optional DisableEditorTracking_management (default true)
+  - More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
+
+
+Crevasse
+A deep crack in ice.
+
+Crevice
+A narrow opening in rock.
+
+
+'''
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Global Dictionaries and Parameters #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -170,7 +216,7 @@ def make_field_list(dsc): # Construct a list of proper feature class fields
 	fields = dsc.fields # List of all fc fields
 	out_fields = [dsc.OIDFieldName, dsc.lengthFieldName, dsc.areaFieldName, 'shape', 'area', 'length'] # List Geometry and OID fields to be removed
 	# Construct sanitized list of field names
-	field_list = [field.name for field in fields if field.type not in ['Geometry'] and not any(substring in field.name for substring in out_fields)]
+	field_list = [field.name for field in fields if field.type not in ['Geometry'] and not any(substring in field.name.lower() for substring in out_fields if substring)]
 	# Add ufi field to index[-3], OID@ token to index[-2], and Shape@ geometry token to index[-1]
 	field_list.append('OID@')
 	field_list.append('SHAPE@')
@@ -633,6 +679,8 @@ while metrics:
 ''''''''' Update UFI Values '''''''''
 ## Only populates blanks, duplicates, or incorrect values such as 'noInformation'
 ## Added 50k+ restriction
+#### Maybe switch to select by attribute with some fancy footwork to limit the time spent iterating a cursor over 5 million buildings before doing the updating part.
+#### Maybe change the tense from Updated to show which one is actually being worked on. User reading comprehension leaves something to be desired
 # Iterate through all features and update the ufi field with uuid4 random values
 while ufi:
 	ufi_start = dt.now()
@@ -671,6 +719,8 @@ while ufi:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Feature Specific Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+###### Be sure that fishnet is no longer tied to hydro curves. use new arcpy.env.extent.polygon --> mem_fc/the_grid method
 
 ''''''''' Integrate and Repair '''''''''
 ## Removed layered integration and dropped tolerance to 0.02m
@@ -791,6 +841,10 @@ while hydro or hydro2:
 			if ap.MinimumBoundingGeometry_management(hydro_list[1], rectangle, "RECTANGLE_BY_AREA", "ALL", "", "").maxSeverity:
 				write("No curve features found. Nothing to Integrate. Moving to the next tool.")
 				break
+
+				###### This bit. change to extent polygon instead of minimum bounding geometry.
+				# Also use get_count or feature report to guage how much to partition grid chunks.
+
 			with ap.da.SearchCursor(rectangle, ['SHAPE@']) as scursor:
 				for row in scursor:
 					shape = row[0]

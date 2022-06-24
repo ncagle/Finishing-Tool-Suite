@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#¸¸.·´¯`·.¸¸.·´¯`·.¸¸
 # ║╚╔═╗╝║  │┌┘─└┐│  ▄█▀
 #╔══════════════════════════════╗#
 #║ Finishing Tool Suite ver 9.8 ║#
@@ -60,6 +61,7 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
   - Refactor tools to use in_memory workspace where possible to potentially speed up processing
   - Rewrite default pylons and bridges to be general trans/hydro/utility attribution updater
   - Defense Mapping extension is non-standard and certain computers have issues running those tools. Rewrite them around this limitation.
+  - For Calculate Metrics. for line and polygon metrics, if area or length is tool small throw warning with output.
   - Create function to partition data into chunks for smaller processing sets
   - Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the
 	 input TDS. Just restart ArcMap and try again.
@@ -91,23 +93,49 @@ with arcpy.da.SearchCursor("HydrographyCurves", ["OID@", "SHAPE@JSON"]) as scur:
 
 arcpy.Densify_edit("HydrographyCurves", "ANGLE","", "", "20")
 
-  - Sluice Gate line and point AOO. line is easy to get degree off north azimuth
-points:
-with arcpy.da.SearchCursor("HydrographyCurves selection", ['aoo', 'SHAPE@']) as scur:
-...     with arcpy.da.UpdateCursor("HydrographyPoints selection", ['aoo', 'SHAPE@']) as ucur:
-...         for srow in scur:
-...             for urow in ucur:
-...                 if not urow[-1].disjoint(srow[-1]):
-...                     urow[0] = srow[0]
-...                     ucur.updateRow(urow)
-lines:
-def NorthAzimuth(Pline):
-	degBearing = math.degrees(math.atan2((Pline.lastPoint.X - Pline.firstPoint.X),(Pline.lastPoint.Y - Pline.firstPoint.Y)))
-	if (degBearing < 0):
-		degBearing += 360.0
-	return degBearing
 
-Field (type double) = NorthAzimuth( !Shape! )
+
+
+Populate Line and Point AOO (Sluice Gate/Mountain Pass/etc)
+Get Line AOO first since the Point AOO is derived from the intersecting, correlated lines.
+
+Lines:
+Select the Lines that need AOO populated or the Lines that intersect the Points that need AOO.
+Open the Attribute Table and open Field Calculator for the AOO field.
+(If there isn't an AOO field, you can make a temporary field of type 'Double' and delete it when it's done)
+Set the 'Parser' to Python and check 'Show Codeblock'.
+Copy/paste the first section of code into the 'Pre-Logic Script Code' box.
+Copy/paste the second section of code into the bottom box under 'AOO ='.
+Click OK.
+
+# Paste in Pre-Logic Script Code
+def north_azimuth(p_line):
+	deg_bearing = math.degrees(math.atan2((p_line.lastPoint.X - p_line.firstPoint.X),(p_line.lastPoint.Y - p_line.firstPoint.Y)))
+	if (deg_bearing < 0):
+		deg_bearing += 360.0
+	return deg_bearing
+
+# Paste in
+round(north_azimuth(!Shape!))
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Points:
+Select points that need AOO populated.
+Select correlated lines that intersect those points. i.e. Sluice Gate Points and intersecting River curves
+Open the ArcMap Python window and copy/paste the code below into it.
+Replace "Curves_Feature_Class" with the name of the intersecting Line feature class that has the selection.
+Replace "Point_Feature_Class" with the name of the Point feature class that has the selection.
+Hit Enter twice to run the snippet
+
+with arcpy.da.SearchCursor("Curves_Feature_Class", ['aoo', 'SHAPE@']) as scur:
+	with arcpy.da.UpdateCursor("Point_Feature_Class", ['aoo', 'SHAPE@']) as ucur:
+		for srow in scur:
+			for urow in ucur:
+				if not urow[-1].disjoint(srow[-1]):
+					urow[0] = srow[0]
+					ucur.updateRow(urow)
+
 
 
 ## Recent Changes
@@ -563,7 +591,7 @@ def format_count(count): # format counts with the right amount of spacing for ou
 			end_spacing += " "
 	return end_spacing
 
-def format_name(name): # format counts with the right amount of spacing for output report
+def format_name(name): # format name with the right amount of spacing for output report
 	end_spacing = ''
 	for i in range(37-len(name)):
 		end_spacing += ' '
@@ -1094,7 +1122,8 @@ while defaults:
 # Calculates the metric values of the specified fields
 ## Only run on Polygon ARA and Polyline LZN
 #### Defense mapping version takes too long and crashes. just rewrite with manual calculations
-# for line and polygon metrics, if area or length is tool small throw warning with output.
+#### See if Kristen wants to work on it
+#### for line and polygon metrics, if area or length is tool small throw warning with output.
 while metrics:
 	metrics_start = dt.now()
 	tool_name = 'Calculate Metrics'
