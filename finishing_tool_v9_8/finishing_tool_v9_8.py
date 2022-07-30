@@ -138,8 +138,8 @@ trans = ap.GetParameter(12)
 trans2 = ap.GetParameter(13)
 util = ap.GetParameter(14)
 util2 = ap.GetParameter(15)
-dups = ap.GetParameter(16)
-explode = ap.GetParameter(17)
+explode = ap.GetParameter(16)
+dups = ap.GetParameter(17)
 #sdepull = ap.GetParameter(19)
 #dataload = ap.GetParameter(20)
 # For Top-Secret Finishing Version, what is the name of our leader?
@@ -651,6 +651,7 @@ while defaults or defaults2:
 # Calculates the metric values of the specified fields
 ## Only run on Polygon ARA and Polyline LZN
 #### Defense mapping version takes too long and crashes. just rewrite with manual calculations
+## Fixed comma tuple bug
 # for line and polygon metrics, if area or length is tool small throw warning with output.
 while metrics:
 	metrics_start = dt.now()
@@ -660,11 +661,11 @@ while metrics:
 		try:
 			if get_count(fc) == 0:
 				continue
-			shape_type = ap.Describe(fc).shapeType, # Polygon, Polyline, Point, Multipoint, MultiPatch
-			if shape_type[0] == 'Polyline':
+			shape_type = ap.Describe(fc).shapeType # Polygon, Polyline, Point, Multipoint, MultiPatch
+			if shape_type == 'Polyline':
 				write("Calculating Length field for {0}".format(fc))
 				ap.CalculateMetrics_defense(fc, 'LENGTH', "LZN", "#", "#", "#", "#", "#")
-			elif shape_type[0] == 'Polygon':
+			elif shape_type == 'Polygon':
 				write("Calculating Area field for {0}".format(fc))
 				ap.CalculateMetrics_defense(fc, 'AREA', "#", "#", "ARA", "#", "#", "#")
 		except ap.ExecuteError:
@@ -1184,63 +1185,6 @@ while util or util2:
 # Geometry Correction Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-''''''''' Delete Identical Features '''''''''
-# Checks for features with identical geometry and PSG attribution and removes them
-#### Test rewritten find identical code and replace existing
-while dups:
-	dups_start = dt.now()
-	tool_name = 'Delete Identical Features'
-	write("\n--- {0} ---\n".format(tool_name))
-	out_table = os.path.dirname(TDS) # Output directory for Find Identical # C:/Projects/njcagle/S1_C09C_20210427.gdb
-	path = os.path.join(rresults, gdb_name) # Output dBASE table location # C:/Projects/njcagle/S1_C09C_20210427
-	table_loc = "{0}.dbf".format(path) # C:/Projects/njcagle/R&D/__Thunderdome/S1_C09C_20210427.dbf
-	write("Creating temporary output files:\n    - {0}.dbf\n    - {0}.dbf.xml\n    - {0}.cpg\n    - {0}.IN_FID.atx".format(gdb_name))
-	dup_count = 0
-
-	for fc in featureclass: # Loop feature classes and FindIdentical to get a count, then delete any found
-		try:
-			dick = ad.fc_fields_og[fc] # Does not include metric fields. Uses 'Shape' instead of 'SHAPE@' #dict_import
-			ap.FindIdentical_management(fc, out_table, dick, "", "", output_record_option="ONLY_DUPLICATES")
-			rows = get_count("{0}.dbf".format(path))
-			write("Searching for duplicate features in {0}...".format(fc))
-			if rows > 0:
-				ap.DeleteIdentical_management(fc, dick)
-				write("  - Deleted {0} duplicate features.".format(rows))
-				dup_count += rows
-		except ap.ExecuteError:
-			if os.path.exists("{0}.dbf".format(path)): os.remove("{0}.dbf".format(path))
-			if os.path.exists("{0}.dbf.xml".format(path)): os.remove("{0}.dbf.xml".format(path))
-			if os.path.exists("{0}.cpg".format(path)): os.remove("{0}.cpg".format(path))
-			if os.path.exists("{0}.IN_FID.atx".format(path)): os.remove("{0}.IN_FID.atx".format(path))
-			ap.RefreshCatalog(out_table)
-			writeresults(tool_name)
-	# Clean up before next process
-	os.remove("{0}.dbf".format(path))
-	os.remove("{0}.dbf.xml".format(path))
-	os.remove("{0}.cpg".format(path))
-	os.remove("{0}.IN_FID.atx".format(path))
-	ap.RefreshCatalog(out_table)
-	dups_finish = dt.now()
-	write("{0} removed {1} duplicates in {2}".format(tool_name, dup_count, runtime(dups_start, dups_finish)))
-	break
-
-	# ##### check Shape vs shape@ and add xy-tolerance to find and delete identical
-	# #search cursor with shape@ and oid@ check each shape against the others. if they match, store the oid in list.
-	# #new cursor. check matching shapes. if the other fields match, delete the one with the higher oid value
-	# 	for fc in featureclass:
-	# 		try:
-	# 			prev_check = []
-	# 			dup_oids = []
-	# 			lap_fields = ['SHAPE@XY', 'OID@']
-	#
-	# 			with ap.da.SearchCursor(fc, lap_fields) as scursor:
-	# 				with ap.da.SearchCursor(fc, lap_fields) as tcursor:
-	# 					for row in scursor:
-	# 						icursor.insertRow(row)
-	# 			atuple = ptGeometry.angleAndDistanceTo(ptGeometry2, "GEODESIC")
-	# 			atuple == (angle in degrees, distance in meters)
-
-
 ''''''''' Hypernova Burst Multipart Features '''''''''
 ## Added 50k+ restriction
 # Explodes multipart features for an entire dataset
@@ -1397,6 +1341,63 @@ while explode:
 	explode_finish = dt.now()
 	write("{0} exploded {1} in {2}".format(tool_name, total_multi, runtime(explode_start, explode_finish)))
 	break
+
+''''''''' Delete Identical Features '''''''''
+# Checks for features with identical geometry and PSG attribution and removes them
+#### Test rewritten find identical code and replace existing
+while dups:
+	dups_start = dt.now()
+	tool_name = 'Delete Identical Features'
+	write("\n--- {0} ---\n".format(tool_name))
+	out_table = os.path.dirname(TDS) # Output directory for Find Identical # C:/Projects/njcagle/S1_C09C_20210427.gdb
+	path = os.path.join(rresults, gdb_name) # Output dBASE table location # C:/Projects/njcagle/S1_C09C_20210427
+	table_loc = "{0}.dbf".format(path) # C:/Projects/njcagle/R&D/__Thunderdome/S1_C09C_20210427.dbf
+	write("Creating temporary output files:\n    - {0}.dbf\n    - {0}.dbf.xml\n    - {0}.cpg\n    - {0}.IN_FID.atx".format(gdb_name))
+	dup_count = 0
+
+	for fc in featureclass: # Loop feature classes and FindIdentical to get a count, then delete any found
+		try:
+			dick = ad.fc_fields_og[fc] # Does not include metric fields. Uses 'Shape' instead of 'SHAPE@' #dict_import
+			ap.FindIdentical_management(fc, out_table, dick, "", "", output_record_option="ONLY_DUPLICATES")
+			rows = get_count("{0}.dbf".format(path))
+			write("Searching for duplicate features in {0}...".format(fc))
+			if rows > 0:
+				ap.DeleteIdentical_management(fc, dick)
+				write("  - Deleted {0} duplicate features.".format(rows))
+				dup_count += rows
+		except ap.ExecuteError:
+			if os.path.exists("{0}.dbf".format(path)): os.remove("{0}.dbf".format(path))
+			if os.path.exists("{0}.dbf.xml".format(path)): os.remove("{0}.dbf.xml".format(path))
+			if os.path.exists("{0}.cpg".format(path)): os.remove("{0}.cpg".format(path))
+			if os.path.exists("{0}.IN_FID.atx".format(path)): os.remove("{0}.IN_FID.atx".format(path))
+			ap.RefreshCatalog(out_table)
+			writeresults(tool_name)
+	# Clean up before next process
+	os.remove("{0}.dbf".format(path))
+	os.remove("{0}.dbf.xml".format(path))
+	os.remove("{0}.cpg".format(path))
+	os.remove("{0}.IN_FID.atx".format(path))
+	ap.RefreshCatalog(out_table)
+	dups_finish = dt.now()
+	write("{0} removed {1} duplicates in {2}".format(tool_name, dup_count, runtime(dups_start, dups_finish)))
+	break
+
+	# ##### check Shape vs shape@ and add xy-tolerance to find and delete identical
+	# #search cursor with shape@ and oid@ check each shape against the others. if they match, store the oid in list.
+	# #new cursor. check matching shapes. if the other fields match, delete the one with the higher oid value
+	# 	for fc in featureclass:
+	# 		try:
+	# 			prev_check = []
+	# 			dup_oids = []
+	# 			lap_fields = ['SHAPE@XY', 'OID@']
+	#
+	# 			with ap.da.SearchCursor(fc, lap_fields) as scursor:
+	# 				with ap.da.SearchCursor(fc, lap_fields) as tcursor:
+	# 					for row in scursor:
+	# 						icursor.insertRow(row)
+	# 			atuple = ptGeometry.angleAndDistanceTo(ptGeometry2, "GEODESIC")
+	# 			atuple == (angle in degrees, distance in meters)
+
 
 
 #----------------------------------------------------------------------

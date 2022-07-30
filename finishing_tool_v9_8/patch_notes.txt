@@ -1,0 +1,122 @@
+## Now with added cart tracks!
+## updates WID less than trans, not just default
+## updates mismatched CTUU so bridge matches trans feature
+## updated bridge/trans shared geometry method
+
+
+--- Pylon HGT Updater --- #### double check output math
+6529 default value pylons found.
+6525 of the intersecting cables don't have a height. These will be ignored.
+6 pylons are intersecting a cable with a height value and will be updated.
+#### double check recount variable
+0 pylons still have default HGT. 
+#### add asterisks and tabs
+ Consider running Integrate and Repair before trying again. 
+ The remaining pylons are not snapped, missing a cable, or the underlying cable doesn't have a height.
+6 pylons updated with new HGT values in 7.623 seconds
+
+
+--- Building in BUA Scaler --- #### double check that there were no BUAs. might be missing the check.
+No BUAs found. #### new line after
+#### make green
+Building in BUA Scaler finished in 0.562 seconds
+
+
+--- CACI Swap Scale and CTUU ---
+#### check this is stated in royal decree outro
+Provided TDS does not match CACI schema containing the 'Scale' field.
+Cannot run CACI Swap Scale and CTUU
+
+
+--- Database Feature Report ---
+Checking feature classes...
+#### remove new line
+AeronauticPnt features counted
+AeronauticSrf features counted
+~
+#### "File located in the same folder as the database"
+Feature Count Report created. File located in database folder:
+C:\Projects\njcagle\R&D\M2_G19A_20210119_Feature_Report_2022_07_18_1309.txt
+#### new line
+Database Feature Report finished in 16.856 seconds
+
+
+--- Source Analysis Report ---
+Checking feature classes...
+#### remove new line
+AeronauticPnt feature sources identified
+AeronauticSrf feature sources identified
+~
+#### "File located in the same folder as the database"
+Source Analysis Report created. File located in database folder:
+#### double check output folder location vs what is being printed
+C:\Projects\njcagle\R&D
+#### new line
+Source Analysis Report finished in 10.232 seconds
+
+
+
+#### Beautify and format
+Freeing partition memory
+
+~~ Checking Defense Mapping Extension back in ~~
+
+#### Make a dictionary of runtimes for each tool for royal decree outro
+#### use old time format
+    |     - Repaired NULL Geometries             |
+    |          Time Elapsed: 00:00:00.000        |
+    |     - Populated F_Codes                    |
+    |          0 F_Code errors fixed             |
+    |          Time Elapsed: 00:00:00.000        |
+#### update wording
+    |     - Updated UFI Values                   |
+    |          190674 Invalid or missing UFIs    |
+#### Hydrography Features, Transportation Features, Utility Features
+#### double check math for total features for new version of integration.
+#### should just be total number of features in pnt, crv, and srf fcs.
+    |     - Integrated and Repaired:             |
+    |          28599 Hydrography Features        |
+    |          64839 Transportation Features     |
+    |          59988 Utility Features            |
+
+#### this output has different numbers than the tool
+#### Update tool name
+    |     - Bridge WID Updater                   |
+    |          3645 Bridges updated              |
+#### make green if not 0
+    |          58 Defaults not updated           |
+#### make green if not 0
+    |          Check the output for more info    |
+#### Update tool name
+    |     - Pylon HGT Updater                    |
+    |          6 Pylons updated                  |
+#### make green if not 0
+    |          0 Defaults not updated            |
+#### make green if not 0
+    |          Check the output for more info    |
+#### Update tool name
+    |     - Building in BUA Scaler               |
+    |          No BUAs found                     |
+
+#### update tool name
+    |     - Feature *R*eport generated             |
+    |          95741 Point Features              |
+    |          146849 Curve Features             |
+    |          260289 Surface Features           |
+    |          502879 Total Features             |
+    |          37426 Hydrography Features        |
+    |          117104 Transportation Features    |
+#### add total utility feature count
+    |          0000000 Utility Features          |**
+    |          244865 Buildings                  |
+    |          6663 Landcover Surfaces           |
+#### update wording
+    |          Check the output for file path    |
+#### update tool name
+    |     - Source *R*eport generated              |
+#### update wording
+    |          Check the output for file path    |
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~

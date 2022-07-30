@@ -3,25 +3,37 @@
 # Preprocessing Tool v9.7 #
 # Nat Cagle 2022-05-10    #
 # ======================= #
+
+# ArcPy aliasing
 import arcpy as ap
-from arcpy import AddMessage as write
-from arcpy import AddFieldDelimiters as fieldDelim
-import datetime
-from datetime import datetime as dt
+from arcpy import (AddFieldDelimiters as field_delim,
+	AddMessage as write,
+	MakeFeatureLayer_management as make_lyr,
+	MakeTableView_management as make_tbl,
+	SelectLayerByAttribute_management as select_by_att,
+	SelectLayerByLocation_management as select_by_loc,
+	Delete_management as arcdel)
+# Collections to organize and simplify
 from collections import OrderedDict
+from collections import namedtuple
+# STOP! Hammer time
+from datetime import datetime as dt
+import time
+# Number bumbers
+import csv as cs
 import pandas as pd
 import numpy as np
-import csv as cs
+import math
 import uuid
+import re
+# System Modules
 import os
 import sys
-import time
-import math
-import traceback
-import re
 import imp
+import traceback
+import subprocess
 #import arc_dict as ad
-ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\6_Tools\Tool_Dev\arc_dict.py")
+ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\6_Tools\_dict_source\arc_dict.py")
 
 #            ________________________________
 #           | It does a whole bunch of stuff |
@@ -79,13 +91,15 @@ ap.env.overwriteOutput = True
 #vogon = ap.GetParameter(1) # Skips large building datasets
 secret = ap.GetParameter(1) ### update index as needed
 disable = ap.GetParameter(2)
-hydrattr = ap.GetParameter(3)
-tranattr = ap.GetParameter(4)
-utilattr = ap.GetParameter(5)
-building = ap.GetParameter(6) # Be sure to add Structure Srf and Pnt back if vogon is checked
-swap = ap.GetParameter(7)
-fcount = ap.GetParameter(8)
-vsource = ap.GetParameter(9) # Michael here.
+bridge = ap.GetParameter(3)
+pylong = ap.GetParameter(4)
+# hydrattr = ap.GetParameter(3)
+# tranattr = ap.GetParameter(4)
+# utilattr = ap.GetParameter(5)
+building = ap.GetParameter(5) # Be sure to add Structure Srf and Pnt back if vogon is checked
+swap = ap.GetParameter(6)
+fcount = ap.GetParameter(7)
+vsource = ap.GetParameter(8) # Michael here.
 #sdepull = ap.GetParameter(19)
 #dataload = ap.GetParameter(20)
 
@@ -204,6 +218,13 @@ def format_count(count): # format counts with the right amount of spacing for ou
 def get_count(fc_layer): # Returns feature count
     results = int(ap.GetCount_management(fc_layer).getOutput(0))
     return results
+
+def fc_exists(fc, tool_name): # Check if feature class exists
+	if ap.Exists(fc):
+		return True
+	else:
+		write("{0} feature class missing.\n{1} will skip steps involving {0} .".format(fc, tool_name))
+		return False
 
 #----------------------------------------------------------------------
 
@@ -637,135 +658,406 @@ while pylong: # Needs updating from management geoprocessing to cursors
 
 #----------------------------------------------------------------------
 ''''''''' Building in BUA Descaler '''''''''
-# Descales buildings within BUAs that don't have important FFNs
-#### make 50k+ restriction in function
+# Descales buildings within BUAs that don't have important FFNs, have a height < 46m, and aren't navigation landmarks
+# Scales in buildings within BUAs that do have important FFNs, have a height >= 46m, or are navigation landmarks
 while building:
-	building_err = False
-	no_bua = False
-	no_bua_buildings = False
-	total_non_imp = 0
+	# Initialize task
+	building_start = dt.now()
 	tool_name = 'Building in BUA Descaler'
 	write("\n--- {0} ---\n".format(tool_name))
-	if not ap.Exists('SettlementSrf'):
-		write("SettlementSrf feature class missing./nCannot run Building in BUA Descaler.")
-		building_err = True
-		break
-	if not ap.Exists('StructureSrf') and not ap.Exists('StructurePnt'):
-		write("StructureSrf and StructurePnt feature classes missing./nCannot run Building in BUA Descaler.")
-		building_err = True
-		break
-	break
 
-while building: # Needs updating from management geoprocessing to cursors
-	building_start = dt.now()
-	if building_err:
+	#~~~~~ Royal Decree Variables ~~~~~
+	# Check that required feature classes exist
+	bua_exist = fc_exists('SettlementSrf', tool_name) # Does SettlementSrf fc exist in the dataset
+	building_s_exist = fc_exists('StructureSrf', tool_name) # Does StructureSrf fc exist in the dataset
+	building_p_exist = fc_exists('StructurePnt', tool_name) # Does StructureSrf fc exist in the dataset
+	bua_count = 0
+	total_2upscale = 0
+	total_2descale = 0
+	if not bua_exist: # Task can't run if SettlementSrf fc is missing
 		break
-	# Make initial layers from the workspace
-	srf_exist = False
-	pnt_exist = False
-	import_ffn_s = 0
-	import_ffn_p = 0
-	non_import_count_s = 0
-	non_import_count_p = 0
-	fields = 'ZI026_CTUU'
-	caci_query = "FFN IN ({0})".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
-	other_query = "FFN IN ({0})".format(", ".join(str(i) for i in ad.ffn_list_all.values())) #dict_import
+	if not building_s_exist and not building_p_exist: # Task can't run if both StructureSrf and StructurePnt fcs are missing. Only one is fine.
+		break
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	if caci_schema:
-		write("CACI specific important building FFNs list:")
-		write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
-	else:
-		write("Current project important building FFNs list:")
-		write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_all.items())) #dict_import
+	# Intra-task variables
+	total_2upscale_s = 0
+	total_2descale_s = 0
+	total_2upscale_p = 0
+	total_2descale_p = 0
+	update_field = 'ZI026_CTUU'
+	bua_query = "F_CODE = 'AL020' AND ZI026_CTUU >= 50000" # We don't need to worry about below scale BUAs, right?
+	building_query_2upscale = "F_CODE = 'AL013' AND ZI026_CTUU < 50000" # Maybe less than 250k for building surfaces?
+	building_query_2descale = "F_CODE = 'AL013' AND ZI026_CTUU >= 50000"
+	caci_ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
+	caci_ffn_query_2descale = "FFN NOT IN ({0}) AND HGT < 46 AND LMC <> 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
+	ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_all.values())) #dict_import
+	ffn_query_2descale = "FFN NOT IN ({0}) AND HGT < 46 AND LMC <> 1001".format(", ".join(str(i) for i in ad.ffn_list_all.values())) #dict_import
 
-	# Make layer of BUAs
-	write("\nRetrieved feature classes containing BUAs and Buildings")
-	write("Selecting BUAs")
-	ap.MakeFeatureLayer_management("SettlementSrf", "settlement_srf")
-	ap.SelectLayerByAttribute_management("settlement_srf", "NEW_SELECTION", "F_CODE = 'AL020'")
-	ap.MakeFeatureLayer_management("settlement_srf", "buas")
+	#----------------------------------------------------------------------
+
+	write("Retrieved Settlement and Structure feature classes")
+	# Make layer of BUAs >= 50k
+	make_lyr("SettlementSrf", "buas", bua_query)
+	#make_tbl("SettlementSrf", "buas", bua_query) # Cannot be used for geometry.
 	write("Searching within BUAs")
+	bua_count = get_count("buas")
 
-	if ap.Exists('StructureSrf'):
-		# Make layer of building surfaces
-		ap.MakeFeatureLayer_management("StructureSrf", "structure_srf")
-		ap.SelectLayerByAttribute_management("structure_srf", "NEW_SELECTION", "F_CODE = 'AL013'")
-		ap.MakeFeatureLayer_management("structure_srf", "building_srf")
-		# Layer of building surfaces within BUAs
-		ap.SelectLayerByLocation_management ("building_srf", "WITHIN", "buas", "", "NEW_SELECTION")
-		ap.MakeFeatureLayer_management("building_srf", "bua_building_s")
-		# Select important building surfaces and switch selection
-		# Adam's original list: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
-		write("Identifying building surfaces matching criteria...")
-		if caci_schema:
-			ap.SelectLayerByAttribute_management("bua_building_s", "NEW_SELECTION", caci_query)
-		else:
-			ap.SelectLayerByAttribute_management("bua_building_s", "NEW_SELECTION", other_query)
-		import_ffn_s = int(ap.GetCount_management("bua_building_s").getOutput(0))
-		ap.SelectLayerByAttribute_management("bua_building_s", "SWITCH_SELECTION")
-		ap.MakeFeatureLayer_management("bua_building_s", "non_import_s")
-		non_import_count_s = int(ap.GetCount_management("non_import_s").getOutput(0))
-
-	if ap.Exists('StructurePnt'):
-		# Make layer of building points
-		ap.MakeFeatureLayer_management("StructurePnt", "structure_pnt")
-		ap.SelectLayerByAttribute_management("structure_pnt", "NEW_SELECTION", "F_CODE = 'AL013'")
-		ap.MakeFeatureLayer_management("structure_pnt", "building_pnt")
-		# Layer of building points within BUAs
-		ap.SelectLayerByLocation_management ("building_pnt", "WITHIN", "buas", "", "NEW_SELECTION")
-		ap.MakeFeatureLayer_management("building_pnt", "bua_building_p")
-		# Select important building points and switch selection
-		# Adam's original list: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
-		write("Identifying building points matching criteria...")
-		if caci_schema:
-			ap.SelectLayerByAttribute_management("bua_building_s", "NEW_SELECTION", caci_query)
-		else:
-			ap.SelectLayerByAttribute_management("bua_building_s", "NEW_SELECTION", other_query)
-		import_ffn_p = int(ap.GetCount_management("bua_building_p").getOutput(0))
-		ap.SelectLayerByAttribute_management("bua_building_p", "SWITCH_SELECTION")
-		ap.MakeFeatureLayer_management("bua_building_p", "non_import_p")
-		non_import_count_p = int(ap.GetCount_management("non_import_p").getOutput(0))
-
-	# Count buildings and buas in selections
-	bua_count = int(ap.GetCount_management("buas").getOutput(0))
-	total_import = import_ffn_s + import_ffn_p
-	total_non_imp = non_import_count_s + non_import_count_p
-
-	# End script if there are no BUAs or no buildings inside them
-	if bua_count == 0:
+	if not bua_count: # No BUAs to check against buildings. Wrap up task.
 		write("\nNo BUAs found.")
-		no_bua = True
-		building_finish = dt.now()
-		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
-		break
-	if total_non_imp == 0:
-		write("\nNo buildings without important FFNs found in BUAs.")
-		no_bua_buildings = True
 		building_finish = dt.now()
 		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
 		break
 
-	write("\n{0} buildings with important FFNs found in {1} total BUAs.".format(total_import, bua_count))
+	if building_s_exist:
+		# Adam's original important ffn list for just building points: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
+		write("Identifying building surfaces matching criteria...\n")
+		if caci_schema: # Snowflake Protocol
+			write("CACI specific important building FFNs list:")
+			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
 
-	# Descale selected, non-important buildings within BUAs to CTUU 12500
-	write("Descaling unimportant building surfaces...")
-	with ap.da.UpdateCursor("non_import_s", fields) as cursor_s:
-		for row in cursor_s:
-			row[0] = 12500
-			cursor_s.updateRow(row)
+			# Make layer of building surfaces < 50k, select the buildings within BUAs, and apply the important building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructureSrf", "building_s_12.5k", building_query_2upscale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_s_12.5k_within_2upscale", caci_ffn_query_2upscale)
 
-	write("Descaling unimportant building points...")
-	with ap.da.UpdateCursor("non_import_p", fields) as cursor_p:
-		for row in cursor_p:
-			row[0] = 12500
-			cursor_p.updateRow(row)
+			# Make layer of building surfaces >= 50k, select the buildings within BUAs, and apply the unimportant building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructureSrf", "building_s_50k+", building_query_2descale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_s_50k+_within_2descale", caci_ffn_query_2descale)
 
-	write("\n{0} building surfaces descaled to CTUU 12500.".format(non_import_count_s))
-	write("{0} building points descaled to CTUU 12500.".format(non_import_count_p))
+			# # Alternative solution
+			# # This starts with a geometry comparison with all structure srfs against BUAs, not just buildings
+			# # The current method makes a queries the buildings to limit the number of features before the geometry comparison
+			# # That should be faster.
+			# # Make layer of BUAs and layer of all building surfaces within those BUAs
+			# make_lyr("SettlementSurfaces", "buas", bua_query)
+			# make_lyr(
+			# 	select_by_loc(
+			# 		make_lyr("StructureSrf", "structure_s"),
+			# 		"WITHIN", "buas", "", "NEW_SELECTION"),
+			# 	"structure_s_within")
+			# # Select building surfaces 50k and up that are within BUAs
+			# # Make layer of important building surfaces to descale
+			# make_lyr(
+			# 	select_by_att("structure_s_within", "NEW_SELECTION", building_query_2descale),
+			# 	"building_s_50k+_within_2descale", caci_ffn_query_2descale)
+			# # Select below scale building surfaces that are within BUAs
+			# # Make layer of important building surfaces to upscale
+			# make_lyr(
+			# 	select_by_att("structure_s_within", "NEW_SELECTION", building_query_2upscale),
+			# 	"building_s_12.5k_within_2upscale", caci_ffn_query_2upscale)
+
+		#-----------------------------------
+
+		else:
+			write("Current project important building FFNs list:")
+			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_all.items())) #dict_import
+
+			# Make layer of building surfaces < 50k, select the buildings within BUAs, and apply the important building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructureSrf", "building_s_12.5k", building_query_2upscale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_s_12.5k_within_2upscale", ffn_query_2upscale)
+
+			# Make layer of building surfaces >= 50k, select the buildings within BUAs, and apply the unimportant building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructureSrf", "building_s_50k+", building_query_2descale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_s_50k+_within_2descale", ffn_query_2descale)
+
+		total_2upscale_s = get_count("building_s_12.5k_within_2upscale")
+		total_2descale_s = get_count("building_s_50k+_within_2descale")
+		write("\n{0} below scale building surfaces in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_s, bua_count))
+		write("{0} building surfaces >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.\n".format(total_2descale_s, bua_count))
+
+		#-----------------------------------
+
+		if total_2upscale_s:
+			# Scale in important, tall, or landmark building surfaces within BUAs from below 50k to 250k (per PSG)
+			write("Setting below scale important, tall, or landmark building surfaces to 250k...")
+			with ap.da.UpdateCursor("building_s_12.5k_within_2upscale", update_field) as ucursor:
+				for urow in ucursor:
+					urow[0] = 250000
+					ucursor.updateRow(urow)
+
+		if total_2descale_s:
+			# Descale unimportant, short, and uninteresting building surfaces within BUAs from 50k+ to 12.5k
+			write("Setting unimportant, short, and uninteresting building surfaces to 12.5k...")
+			with ap.da.UpdateCursor("building_s_50k+_within_2descale", update_field) as ucursor:
+				for urow in ucursor:
+					urow[0] = 12500
+					ucursor.updateRow(urow)
+
+		write("")
+
+	if building_p_exist:
+		# Adam's original important ffn list for just building points: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
+		write("Identifying building points matching criteria...\n")
+		if caci_schema: # Snowflake Protocol
+			write("CACI specific important building FFNs list:")
+			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
+
+			# Make layer of building points < 50k, select the buildings within BUAs, and apply the important building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructurePnt", "building_p_12.5k", building_query_2upscale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_p_12.5k_within_2upscale", caci_ffn_query_2upscale)
+
+			# Make layer of building points >= 50k, select the buildings within BUAs, and apply the unimportant building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructurePnt", "building_p_50k+", building_query_2descale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_p_50k+_within_2descale", caci_ffn_query_2descale)
+
+		#-----------------------------------
+
+		else:
+			write("Current project important building FFNs list:")
+			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_all.items())) #dict_import
+
+			# Make layer of building points < 50k, select the buildings within BUAs, and apply the important building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructurePnt", "building_p_12.5k", building_query_2upscale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_p_12.5k_within_2upscale", ffn_query_2upscale)
+
+			# Make layer of building points >= 50k, select the buildings within BUAs, and apply the unimportant building query
+			make_lyr(
+				select_by_loc(
+					make_lyr("StructurePnt", "building_p_50k+", building_query_2descale),
+					"WITHIN", "buas", "", "NEW_SELECTION"),
+				"building_p_50k+_within_2descale", ffn_query_2descale)
+
+		total_2upscale_p = get_count("building_p_12.5k_within_2upscale")
+		total_2descale_p = get_count("building_p_50k+_within_2descale")
+		write("\n{0} below scale building points in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_p, bua_count))
+		write("{0} building points >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.\n".format(total_2descale_p, bua_count))
+
+		#-----------------------------------
+
+		if total_2upscale_p:
+			# Scale in important, tall, or landmark building points within BUAs from below 50k to 50k
+			write("Setting below scale important, tall, or landmark building points to 50k...")
+			with ap.da.UpdateCursor("building_p_12.5k_within_2upscale", update_field) as ucursor:
+				for urow in ucursor:
+					urow[0] = 50000
+					ucursor.updateRow(urow)
+
+		if total_2descale_p:
+			# Descale unimportant, short, and uninteresting building points within BUAs from 50k+ to 12.5k
+			write("Setting unimportant, short, and uninteresting building points to 12.5k...")
+			with ap.da.UpdateCursor("building_p_50k+_within_2descale", update_field) as ucursor:
+				for urow in ucursor:
+					urow[0] = 12500
+					ucursor.updateRow(urow)
+
+		write("")
+
+	#----------------------------------------------------------------------
+
+	# Count total buildings being upscaled and downscaled
+	total_2upscale = total_2upscale_s + total_2upscale_p
+	total_2descale = total_2descale_s + total_2descale_p
+
+	# Clean up created layers
+	for lyr in ["buas", "building_s_50k+", "building_s_50k+_within_2descale", "building_s_12.5k", "building_s_12.5k_within_2upscale"]: arcdel(lyr)
+
+	write("{0} building surfaces scaled to 250k.".format(total_2upscale_s))
+	write("{0} building surfaces scaled to 12500.".format(total_2descale_s))
+	write("{0} building points scaled to 50000.".format(total_2upscale_p))
+	write("{0} building points scaled to 12500.".format(total_2descale_p))
 	building_finish = dt.now()
-	write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
+	write("\n{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
 	break
-#Building in BUA Descaler finished in 0:00:18.7870
+
+# ''''''''' Building in BUA Descaler '''''''''
+# # Descales buildings within BUAs that don't have important FFNs
+# #### make 50k+ restriction in function
+# while building:
+# 	building_err = False
+# 	no_bua = False
+# 	no_bua_buildings = False
+# 	total_non_imp = 0
+# 	tool_name = 'Building in BUA Descaler'
+# 	write("\n--- {0} ---\n".format(tool_name))
+# 	if not ap.Exists('SettlementSrf'):
+# 		write("SettlementSrf feature class missing./nCannot run Building in BUA Descaler.")
+# 		building_err = True
+# 		break
+# 	if not ap.Exists('StructureSrf') and not ap.Exists('StructurePnt'):
+# 		write("StructureSrf and StructurePnt feature classes missing./nCannot run Building in BUA Descaler.")
+# 		building_err = True
+# 		break
+# 	break
+#
+# while building: # Needs updating from management geoprocessing to cursors
+# 	building_start = dt.now()
+# 	if building_err:
+# 		break
+# 	# Make initial layers from the workspace
+# 	srf_exist = False
+# 	pnt_exist = False
+# 	import_ffn_s = 0
+# 	import_ffn_p = 0
+# 	non_import_count_s = 0
+# 	non_import_count_p = 0
+# 	fields = 'ZI026_CTUU'
+# 	caci_query = "FFN IN ({0}) OR HGT >= 46".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
+# 	other_query = "FFN IN ({0}) OR HGT >= 46".format(", ".join(str(i) for i in ad.ffn_list_all.values())) #dict_import
+#
+# 	if caci_schema:
+# 		write("CACI specific important building FFNs list:")
+# 		write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
+# 	else:
+# 		write("Current project important building FFNs list:")
+# 		write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_all.items())) #dict_import
+#
+# 	# Make layer of BUAs
+# 	write("\nRetrieved feature classes containing BUAs and Buildings")
+# 	write("Selecting BUAs")
+# 	ap.MakeFeatureLayer_management("SettlementSrf", "settlement_srf")
+# 	ap.SelectLayerByAttribute_management("settlement_srf", "NEW_SELECTION", "F_CODE = 'AL020' AND ZI026_CTUU >= 50000")
+# 	ap.MakeFeatureLayer_management("settlement_srf", "buas")
+# 	write("Searching within BUAs")
+#
+# #### change the naming for these. descale and inscale is confusing. because descale is not descaled. non_import is descaled
+#
+# 	if ap.Exists('StructureSrf'):
+# 		ap.MakeFeatureLayer_management("StructureSrf", "structure_srf")
+# 		# Make layer of building surfaces 50k and up
+# 		ap.SelectLayerByAttribute_management("structure_srf", "NEW_SELECTION", "F_CODE = 'AL013' AND ZI026_CTUU >= 50000")
+# 		ap.MakeFeatureLayer_management("structure_srf", "building_srf_inscale")
+# 		# Layer of in scale building surfaces within BUAs
+# 		ap.SelectLayerByLocation_management ("building_srf_inscale", "WITHIN", "buas", "", "NEW_SELECTION")
+# 		ap.MakeFeatureLayer_management("building_srf_inscale", "bua_building_inscale_s")
+# 		# Make layer of building surfaces below 50k
+# 		ap.SelectLayerByAttribute_management("structure_srf", "NEW_SELECTION", "F_CODE = 'AL013' AND ZI026_CTUU <= 50000")
+# 		ap.MakeFeatureLayer_management("structure_srf", "building_srf_unscaled")
+# 		# Layer of below scale building surfaces within BUAs
+# 		ap.SelectLayerByLocation_management ("building_srf_unscaled", "WITHIN", "buas", "", "NEW_SELECTION")
+# 		ap.MakeFeatureLayer_management("building_srf_unscaled", "bua_building_unscaled_s")
+#
+# 		# Select important building surfaces and switch selection
+# 		# Adam's original list: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
+# 		write("Identifying building surfaces matching criteria...")
+# 		if caci_schema:
+# 			ap.SelectLayerByAttribute_management("bua_building_inscale_s", "NEW_SELECTION", caci_query)
+# 			ap.SelectLayerByAttribute_management("bua_building_unscaled_s", "NEW_SELECTION", caci_query)
+# 		else:
+# 			ap.SelectLayerByAttribute_management("bua_building_inscale_s", "NEW_SELECTION", other_query)
+# 			ap.SelectLayerByAttribute_management("bua_building_unscaled_s", "NEW_SELECTION", other_query)
+#
+# 		import_ffn_inscale_s = get_count("bua_building_inscale_s")
+# 		import_ffn_unscaled_s = get_count("bua_building_unscaled_s")
+# 		ap.SelectLayerByAttribute_management("bua_building_inscale_s", "SWITCH_SELECTION")
+# 		ap.MakeFeatureLayer_management("bua_building_inscale_s", "non_import_s")
+# 		non_import_count_s = get_count("non_import_s")
+#
+# 	if ap.Exists('StructurePnt'):
+# 		ap.MakeFeatureLayer_management("StructurePnt", "structure_pnt")
+# 		# Make layer of building points 50k and up
+# 		ap.SelectLayerByAttribute_management("structure_pnt", "NEW_SELECTION", "F_CODE = 'AL013' AND ZI026_CTUU <= 50000")
+# 		ap.MakeFeatureLayer_management("structure_pnt", "building_pnt_inscale")
+# 		# Layer of in scale building points within BUAs
+# 		ap.SelectLayerByLocation_management ("building_pnt_inscale", "WITHIN", "buas", "", "NEW_SELECTION")
+# 		ap.MakeFeatureLayer_management("building_pnt_inscale", "bua_building_inscale_p")
+# 		# Make layer of building points below 50k
+# 		ap.SelectLayerByAttribute_management("structure_pnt", "NEW_SELECTION", "F_CODE = 'AL013' AND ZI026_CTUU <= 50000")
+# 		ap.MakeFeatureLayer_management("structure_pnt", "building_pnt_unscaled")
+# 		# Layer of below scale building points within BUAs
+# 		ap.SelectLayerByLocation_management ("building_pnt_unscaled", "WITHIN", "buas", "", "NEW_SELECTION")
+# 		ap.MakeFeatureLayer_management("building_pnt_unscaled", "bua_building_unscaled_p")
+#
+# 		# Select important building points and switch selection
+# 		# Adam's original list: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
+# 		write("Identifying building points matching criteria...")
+# 		if caci_schema:
+# 			ap.SelectLayerByAttribute_management("bua_building_inscale_p", "NEW_SELECTION", caci_query)
+# 			ap.SelectLayerByAttribute_management("bua_building_unscaled_p", "NEW_SELECTION", caci_query)
+# 		else:
+# 			ap.SelectLayerByAttribute_management("bua_building_inscale_p", "NEW_SELECTION", other_query)
+# 			ap.SelectLayerByAttribute_management("bua_building_unscaled_p", "NEW_SELECTION", other_query)
+# 		import_ffn_inscale_p = get_count("bua_building_inscale_p")
+# 		import_ffn_unscaled_p = get_count("bua_building_unscaled_p")
+# 		ap.SelectLayerByAttribute_management("bua_building_inscale_p", "SWITCH_SELECTION")
+# 		ap.MakeFeatureLayer_management("bua_building_inscale_p", "non_import_p")
+# 		non_import_count_p = get_count("non_import_p")
+#
+# 	# Count buildings and buas in selections
+# 	bua_count = get_count("buas")
+# 	total_import = import_ffn_inscale_s + import_ffn_unscaled_s + import_ffn_inscale_p + import_ffn_unscaled_p
+# 	total_unscaled = import_ffn_unscaled_s + import_ffn_unscaled_p
+# 	total_non_imp = non_import_count_s + non_import_count_p
+#
+# 	# End script if there are no BUAs or no buildings inside them
+# 	if bua_count == 0:
+# 		write("\nNo BUAs found.")
+# 		no_bua = True
+# 		building_finish = dt.now()
+# 		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
+# 		break
+# 	if total_non_imp == 0:
+# 		write("\nNo buildings without important FFNs or taller than 46m found in BUAs.")
+# 		no_bua_buildings = True
+# 		building_finish = dt.now()
+# 		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
+# 		break
+# 	elif import_ffn_unscaled_s + import_ffn_unscaled_p == 0:
+# 		write("\nNo unscaled buildings with important FFNs or taller than 46m found in BUAs.")
+# 		no_bua_buildings = True ## fix this later to have its' own outro variable
+# 		building_finish = dt.now()
+# 		write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
+# 		break
+#
+# 	write("\n{0} tall buildings with important FFNs found in {1} total BUAs.".format(total_import, bua_count))
+# 	write("{0} of {1} are below scale and will be scaled to 50k.\n".format(total_unscaled, total_import))
+#
+# 	if ap.Exists('StructureSrf'):
+# 		# Scale in selected, important, tall buildings within BUAs from below 50k to 50k
+# 		write("Setting below scale important or tall building surfaces to 50k...")
+# 		with ap.da.UpdateCursor("bua_building_unscaled_s", fields) as cursor_s:
+# 			for row in cursor_s:
+# 				row[0] = 50000
+# 				cursor_s.updateRow(row)
+#
+# 		# Descale selected, non-important, short buildings within BUAs from 50k+ to 12.5k
+# 		write("Setting unimportant or short building surfaces to 12.5k...")
+# 		with ap.da.UpdateCursor("non_import_s", fields) as cursor_s:
+# 			for row in cursor_s:
+# 				row[0] = 12500
+# 				cursor_s.updateRow(row)
+#
+# 	if ap.Exists('StructurePnt'):
+# 		# Scale in selected, important, tall buildings within BUAs from below 50k to 50k
+# 		write("Setting below scale important or tall building points to 50k...")
+# 		with ap.da.UpdateCursor("bua_building_unscaled_p", fields) as cursor_p:
+# 			for row in cursor_p:
+# 				row[0] = 50000
+# 				cursor_p.updateRow(row)
+#
+# 		# Descale selected, non-important, short buildings within BUAs from 50k+ to 12.5k
+# 		write("Setting unimportant or short building points to 12.5k...")
+# 		with ap.da.UpdateCursor("non_import_p", fields) as cursor_p:
+# 			for row in cursor_p:
+# 				row[0] = 12500
+# 				cursor_p.updateRow(row)
+#
+# 	write("\n{0} building surfaces descaled to CTUU 12500.".format(non_import_count_s))
+# 	write("{0} building points descaled to CTUU 12500.".format(non_import_count_p))
+# 	building_finish = dt.now()
+# 	write("{0} finished in {1}".format(tool_name, runtime(building_start, building_finish)))
+# 	break
+# #Building in BUA Descaler finished in 0:00:18.7870
 
 ''''''''' CACI Swap Scale and CTUU '''''''''
 # Swaps the Scale field with the CTUU field so we can work normally with CACI data
@@ -1214,17 +1506,15 @@ if pylong:
 		write(u"    |          {0} Defaults not updated      {1}{2}|".format(total_rem_p, f_total_rem_p, exs))
 		write(u"    |          Check the output for more info    {0}|".format(exs))
 if building:
-	f_total_non = format_count(total_non_imp)
 	write(u"    |     - Building in BUA Descaler             {0}|".format(exs))
-	if building_err:
+	if not bua_exist or (not building_s_exist and not building_p_exist):
 		write(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
 		write(u"    |       !!! Please check the output !!!      {0}|".format(exs))
-	elif no_bua:
+	elif not bua_count:
 		write(u"    |          No BUAs found                     {0}|".format(exs))
-	elif no_bua_buildings:
-		write(u"    |          No un-important buildings found   {0}|".format(exs))
 	else:
-		write(u"    |          {0} Buildings descaled        {1}{2}|".format(total_non_imp, f_total_non, exs))
+		write(u"    |          {0} Buildings upscaled        {1}{2}|".format(total_2upscale, format_count(total_2upscale), exs))
+		write(u"    |          {0} Buildings descaled        {1}{2}|".format(total_2descale, format_count(total_2descale), exs))
 		write(u"    |          Check the output for more info    {0}|".format(exs))
 if swap:
 	write(u"    |     - CACI Swap Scale and CTUU             {0}|".format(exs))

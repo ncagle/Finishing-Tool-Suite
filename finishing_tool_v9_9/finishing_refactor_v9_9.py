@@ -1,33 +1,42 @@
 # -*- coding: utf-8 -*-
 #¸¸.·´¯`·.¸¸.·´¯`·.¸¸
-# ║╚╔═╗╝║  │┌┘─└┐│  ▄█▀
+# ║╚╔═╗╝║  │┌┘─└┐│  ▄█▀‾
 #╔══════════════════════════════╗#
 #║ Finishing Tool Suite ver 9.8 ║#
 #║   Nat Cagle & John Jackson   ║#
 #║    Last Edited 2022-05-09    ║#
 #╚══════════════════════════════╝#
 
+# ArcPy aliasing
 import arcpy as ap
-from arcpy import AddMessage as write
-from arcpy import AddFieldDelimiters as fieldDelim
-import datetime
-from datetime import datetime as dt
+from arcpy import (AddFieldDelimiters as field_delim,
+	AddMessage as write,
+	MakeFeatureLayer_management as make_lyr,
+	MakeTableView_management as make_tbl,
+	SelectLayerByAttribute_management as select_by_att,
+	SelectLayerByLocation_management as select_by_loc,
+	Delete_management as arcdel)
+# Collections to organize and simplify
 from collections import OrderedDict
 from collections import namedtuple
+# STOP! Hammer time
+from datetime import datetime as dt
+import time
+# Number bumbers
+import csv as cs
 import pandas as pd
 import numpy as np
-import csv as cs
+import math
 import uuid
+import re
+# System Modules
 import os
 import sys
-import time
-import math
-import traceback
-import re
 import imp
+import traceback
 import subprocess
 #import arc_dict as ad
-ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\FTX_source_dev\arc_dict.py")
+ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Production Tools & Docs\6_Tools\_dict_source\arc_dict.py")
 
 
 
@@ -57,26 +66,13 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
 
 #### Update Plans
   - Make class for TDS properties like all variations of filepath and name
-  - Add option to choose scale to run on.
   - Refactor tools to use in_memory workspace where possible to potentially speed up processing
   - Rewrite default pylons and bridges to be general trans/hydro/utility attribution updater
   - Defense Mapping extension is non-standard and certain computers have issues running those tools. Rewrite them around this limitation.
-  - For Calculate Metrics. for line and polygon metrics, if area or length is tool small throw warning with output.
   - Create function to partition data into chunks for smaller processing sets
-  - Error handling for featureclass <NoneType> has no attribute .sort(). Tell user that ArcMap has failed to interanlly update the location of the
-	 input TDS. Just restart ArcMap and try again.
   - Pull local user profile name and add it to the "stop being cheeky" easter egg. Create user whitelist and blacklist.
   - Add dropdown with background music selection
-
-  - RefreshCatalog for TDS at start of run to evade NoneType error for new copies of databases that ArcMap can't find for dumb reasons
-  - Switch the order of Delete Identical Features and Hypernova Burst Multipart so that any kickback multiparts are exploded and then checked for duplicates. Apparently that's a thing that can happen in the data and needs to be checked for in this order.
-
-  - Add mass select option at the top. option for Interim run that only does the bare minimum and tells the user to ignore things like UFI errors. option to check all the final finishing options. option to check everything (except caci swap)
-
-  - Descale Buildings in BUAs should leave buildins of VO HGT >=46m
-
-  - Don't make fishnet if no trans/hydro/util
-
+  - Replace Royal Decree parameters with dictionary of values from tool outputs similar to initial tool parameters
   - Find and fix Bezier curves
 with arcpy.da.SearchCursor("HydrographyCurves", ["OID@", "SHAPE@JSON"]) as scur:
   count = 0
@@ -94,19 +90,9 @@ with arcpy.da.SearchCursor("HydrographyCurves", ["OID@", "SHAPE@JSON"]) as scur:
 arcpy.Densify_edit("HydrographyCurves", "ANGLE","", "", "20")
 
 
-
-
-Populate Line and Point AOO (Sluice Gate/Mountain Pass/etc)
-Get Line AOO first since the Point AOO is derived from the intersecting, correlated lines.
-
-Lines:
-Select the Lines that need AOO populated or the Lines that intersect the Points that need AOO.
-Open the Attribute Table and open Field Calculator for the AOO field.
-(If there isn't an AOO field, you can make a temporary field of type 'Double' and delete it when it's done)
-Set the 'Parser' to Python and check 'Show Codeblock'.
-Copy/paste the first section of code into the 'Pre-Logic Script Code' box.
-Copy/paste the second section of code into the bottom box under 'AOO ='.
-Click OK.
+Populate Line and Point AOO
+"C:\Projects\njcagle\finishing\_docs\Populate Line and Point AOO.docx"
+https://community.esri.com/t5/spatial-data-science-questions/get-line-direction-orientation-as-a-numeric-field/td-p/532973
 
 # Paste in Pre-Logic Script Code
 def north_azimuth(p_line):
@@ -114,20 +100,10 @@ def north_azimuth(p_line):
 	if (deg_bearing < 0):
 		deg_bearing += 360.0
 	return deg_bearing
-
-# Paste in
+#-----------------------------------
+# Paste in 'AOO = '
 round(north_azimuth(!Shape!))
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Points:
-Select points that need AOO populated.
-Select correlated lines that intersect those points. i.e. Sluice Gate Points and intersecting River curves
-Open the ArcMap Python window and copy/paste the code below into it.
-Replace "Curves_Feature_Class" with the name of the intersecting Line feature class that has the selection.
-Replace "Point_Feature_Class" with the name of the Point feature class that has the selection.
-Hit Enter twice to run the snippet
-
+#-----------------------------------
 with arcpy.da.SearchCursor("Curves_Feature_Class", ['aoo', 'SHAPE@']) as scur:
 	with arcpy.da.UpdateCursor("Point_Feature_Class", ['aoo', 'SHAPE@']) as ucur:
 		for srow in scur:
@@ -137,15 +113,12 @@ with arcpy.da.SearchCursor("Curves_Feature_Class", ['aoo', 'SHAPE@']) as scur:
 					ucur.updateRow(urow)
 
 
-
 ## Recent Changes
-  - Optional DisableEditorTracking_management (default true)
-  - More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
+  -
 
 
 Crevasse
 A deep crack in ice.
-
 Crevice
 A narrow opening in rock.
 
@@ -158,6 +131,13 @@ So it imports the toolbox of itself and then calls the other tools in the toolbo
 This way, it stays sleek. Roundabout way of having tools as functions split up and importing them while
 still keeping it all in one toolbox without extra files
 
+
+#### MAXAR Important FFNs (to be compared)
+"Within a BUA only specifc buildings are needed for portayal.
+
+ 'FFN' = Utilities =350, Transport = 480, Hotel = 551 Resort = 552, Radio Broadcasting = 601, Television Broadcasting = 604, Public Administration = 808, Public Order, Safety and Security Services = 830, Education = 850, Human Health Activities = 860, Refugee Shelter = 883, Cultural, Arts and Entertainment = 890, Religious Activities = 930, Meeting Place = 970
+OR
+Height Above Surface Level >= 46 m. OR  Navigation Landmark is True"
 
 '''
 
@@ -191,15 +171,6 @@ still keeping it all in one toolbox without extra files
 	# ffn_list_caci
 		# Same as above but the CACI specific version cz they just have to be different
 
-""""""""""""""""""""""""""""""""""""""
-'''MAXAR Important FFNs (to be compared)'''
-"""""""""""""""""""""""""""""""""""""""
-"Within a BUA only specifc buildings are needed for portayal.
-
- 'FFN' = Utilities =350, Transport = 480, Hotel = 551 Resort = 552, Radio Broadcasting = 601, Television Broadcasting = 604, Public Administration = 808, Public Order, Safety and Security Services = 830, Education = 850, Human Health Activities = 860, Refugee Shelter = 883, Cultural, Arts and Entertainment = 890, Religious Activities = 930, Meeting Place = 970
-OR
-Height Above Surface Level >= 46 m. OR  Navigation Landmark is True"
-"""
 
 #----------------------------------------------------------------------
 user = os.getenv('username')
@@ -352,7 +323,7 @@ def write_info(name, var): # Write information for given variable
 	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 def writeresults(tool_name): # If tool fails, get messages and output error report before endind process
-	write("\n\n***Failed to run {0}.***\n".format(tool_name))
+	ap.AddError("\n\n***Failed to run {0}.***\n".format(tool_name))
 	trace_back = ''
 	tb_info = ''
 	python_errors = ''
@@ -368,18 +339,18 @@ def writeresults(tool_name): # If tool fails, get messages and output error repo
 		pass
 
 	if len(warnings) > 0:
-		write("Tool Warnings:")
-		write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		write(warnings)
-		write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-	write("Error Report:")
-	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+		ap.AddError("Tool Warnings:")
+		ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+		ap.AddError(warnings)
+		ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+	ap.AddError("Error Report:")
+	ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	ap.AddError(python_errors)
 	ap.AddError(arcpy_errors)
-	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-	write('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
-	write("Please rerun the tool, but uncheck the {0} tool option.\nEither the feature class is too big or something else has gone wrong.".format(tool_name))
-	write("Exiting tool.\n")
+	ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+	ap.AddError('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
+	ap.AddError("Please rerun the tool, but uncheck the {0} tool option.\nEither the feature class is too big or something else has gone wrong.".format(tool_name))
+	ap.AddError("Exiting tool.\n")
 	sys.exit(0)
 	#print(u'                 uuuuuuu\n             uu$$$$$$$$$$$uu\n          uu$$$$$$$$$$$$$$$$$uu\n         u$$$$$$$$$$$$$$$$$$$$$u\n        u$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$"   "$$$"   "$$$$$$u\n       "$$$$"      u$u       $$$$"\n        $$$u       u$u       u$$$\n        $$$u      u$$$u      u$$$\n         "$$$$uu$$$   $$$uu$$$$"\n          "$$$$$$$"   "$$$$$$$"\n            u$$$$$$$u$$$$$$$u\n             u$"|¨|¨|¨|¨|"$u\n  uuu        $$u|¯|¯|¯|¯|u$$       uuu\n u$$$$        $$$$$u$u$u$$$       u$$$$\n  $$$$$uu      "$$$$$$$$$"     uu$$$$$$\nu$$$$$$$$$$$uu    """""    uuuu$$$$$$$$$$\n$$$$"""$$$$$$$$$$uuu   uu$$$$$$$$$"""$$$"\n """      ""$$$$$$$$$$$uu ""$"""\n           uuuu ""$$$$$$$$$$uuu\n  u$$$uuu$$$$$$$$$uu ""$$$$$$$$$$$uuu$$$\n  $$$$$$$$$$""""           ""$$$$$$$$$$$"\n   "$$$$$"                      ""$$$$""\n     $$$"                         $$$$"')
 
@@ -1132,11 +1103,11 @@ while metrics:
 		try:
 			if get_count(fc) == 0:
 				continue
-			shape_type = ap.Describe(fc).shapeType, # Polygon, Polyline, Point, Multipoint, MultiPatch
-			if shape_type[0] == 'Polyline':
+			shape_type = ap.Describe(fc).shapeType # Polygon, Polyline, Point, Multipoint, MultiPatch
+			if shape_type == 'Polyline':
 				write("Calculating Length field for {0}".format(fc))
 				ap.CalculateMetrics_defense(fc, 'LENGTH', "LZN", "#", "#", "#", "#", "#")
-			elif shape_type[0] == 'Polygon':
+			elif shape_type == 'Polygon':
 				write("Calculating Area field for {0}".format(fc))
 				ap.CalculateMetrics_defense(fc, 'AREA', "#", "#", "ARA", "#", "#", "#")
 		except ap.ExecuteError:
@@ -1514,7 +1485,7 @@ while explode:
 				##### Isolate, Explode, Replace #####
 				in_class = "multi"
 				out_class = "single"
-				oid_query = """{0} IS NOT NULL""".format(fieldDelim(fc, og_oid))
+				oid_query = """{0} IS NOT NULL""".format(field_delim(fc, og_oid))
 				# Create a new feature class to put the multipart features in to decrease processing time. fields based on original fc template
 				ap.CreateFeatureclass_management(TDS, in_class, fc_type, fc, "", "", TDS)
 				field_list = make_field_list(dsc)
