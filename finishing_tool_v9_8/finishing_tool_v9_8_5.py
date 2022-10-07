@@ -3,7 +3,7 @@
 # ║╚╔═╗╝║  │┌┘─└┐│  ▄█▀‾
 # ====================== #
 # Finishing Tool v9.8.5  #
-# Nat Cagle 2022-09-01   #
+# Nat Cagle 2022-10-04   #
 # ====================== #
 
 # ArcPy aliasing
@@ -281,10 +281,8 @@ A narrow opening in rock.
 		# { 'AeronauticCrv' : ['F_CODE','FCSUBTYPE','ZI026_CTUU','Shape','Version'], ...}
 	# fc_fields
 		# { 'AeronauticCrv' : ['f_code','fcsubtype','zi026_ctuu','shape@','version'], ...}
-	# ffn_list_p9
+	# ffn_list_p10_combo
 		# OrderedDict([('    Public Administration', 808), ...]) # Sorted, formatted, list of tuples that becomes an ordered dictionary
-	# ffn_list_caci
-		# Same as above but the CACI specific version cz they just have to be different
 
 
 #----------------------------------------------------------------------
@@ -305,7 +303,7 @@ ap.env.overwriteOutput = True
 username = os.environ['USERNAME']
 ### [1] For Top-Secret Finishing Version, what is the name of our leader? (Chairman Bock)- String
 secret = ap.GetParameterAsText(1) # Password for Finishing easter egg
-### [2] Scale to run tool: ZI026_CTUU >= - String Value List
+### [2] Scale to run tools: ZI026_CTUU >= - String Value List
 where_scale = "zi026_ctuu >= {0}".format(ap.GetParameterAsText(2))
 
 #-----------------------------------
@@ -590,6 +588,13 @@ def create_fc_list():
 	featureclass = []
 	featurerecess = []
 	for fc in sorted(ap.ListFeatureClasses()):
+		if bool_dict[tool_names.vogon]:
+			if 'StructurePnt' in fc:
+				ap.AddWarning("StructurePnt will be skipped in processing.")
+				continue
+			if 'StructureSrf' in fc:
+				ap.AddWarning("StructureSrf will be skipped in processing.")
+				continue
 		count = get_count(fc)
 		if count:
 			featureclass.append(fc)
@@ -609,12 +614,12 @@ def create_fc_list():
 		write("ResourceSrf removed")
 	else:
 		write("ResourceSrf has 0 features or is not present")
-	if bool_dict[tool_names.vogon]:
-		if 'StructureSrf' in featureclass:
-			featureclass.remove('StructureSrf')
-		if 'StructurePnt' in featureclass:
-			featureclass.remove('StructurePnt')
-		ap.AddWarning("StructureSrf and StructurePnt will be skipped in processing.")
+	# if bool_dict[tool_names.vogon]:
+	# 	if 'StructureSrf' in featureclass:
+	# 		featureclass.remove('StructureSrf')
+	# 	if 'StructurePnt' in featureclass:
+	# 		featureclass.remove('StructurePnt')
+	# 	ap.AddWarning("StructureSrf and StructurePnt will be skipped in processing.")
 
 	featureclass.sort()
 	write("Loaded {0} of 55 TDSv7.1 feature classes in {1}".format(len(featureclass), runtime(fc_list_start)))
@@ -703,7 +708,8 @@ def grid_chungus(): #Create fishnet grid to partition large datasets into chunks
 	# origin──>└──┘
 	write("Constructing fishnet over dataset for partitioning data into chunks.\nThis helps our potatoes handle the large scale geospatial databases we have to process.")
 	#### Vertex Density Check to determine if a 2x2, 3x3, or larger should be used for really big honkin data
-	ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", "2", "2", corner_coord, "NO_LABELS", "", "POLYGON")
+	#ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", "2", "2", corner_coord, "NO_LABELS", "", "POLYGON")
+	ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", "3", "3", corner_coord, "NO_LABELS", "", "POLYGON")
 	write("Spatial data partitions constructed in {0}".format(runtime(chungus_start)))
 	return mem_fc
 
@@ -836,7 +842,7 @@ def update_ufi():
 
 def snap_lines_to_srf(lines, srf):
 	vertex_env = [srf, "VERTEX", "0.03 Meters"] # Snap lines to the nearest srf vertex within 0.03m
-	edge_env = [srf, "EDGE", "0.03 Meters"] # snap remaining lines to the nearest srf edge within 0.03m
+	edge_env = [srf, "EDGE", "0.03 Meters"] # Snap remaining lines to the nearest srf edge within 0.03m
 	write("Snapping line end nodes to rank 1 surface vertices rank 2 surface edges.")
 	ap.Snap_edit(lines, [vertex_env, edge_env])
 	write("Creating missing line-surface intersection vertices.")
@@ -846,13 +852,13 @@ def snap_lines_to_srf(lines, srf):
 def snap_points_to_lines(points, lines):
 	end_env = [lines, "END", "0.03 Meters"] # Snap points to the nearest line end node within 0.03m as priority over other vertices
 	vertex_env = [lines, "VERTEX", "0.03 Meters"] # Snap points to the nearest line vertex within 0.03m
-	edge_env = [lines, "EDGE", "0.03 Meters"] # snap remaining points to the nearest line edge within 0.03m
+	edge_env = [lines, "EDGE", "0.03 Meters"] # Snap remaining points to the nearest line edge within 0.03m
 	write("Snapping points to rank 1 line end nodes, rank 2 line vertices, and rank 3 line edges.")
 	ap.Snap_edit(points, [end_env, vertex_env, edge_env])
 	write("Creating missing point-line intersection vertices.")
 	ap.Integrate_management([[lines, 1], [points, 2]]) # Integrate points to lines with default domain tolerance to create intersection vertices in the lines without morphing them and creating potential errors.
-	ap.RepairGeometry_management(points, "DELETE_NULL")
 	ap.RepairGeometry_management(lines, "DELETE_NULL")
+	ap.RepairGeometry_management(points, "DELETE_NULL")
 
 def make_integrate_layers(name_list):
 	#name_list = ['FeaturePnt', 'FeatureCrv', 'FeatureSrf', 'feat_pnt', 'feat_crv', 'feat_srf']
@@ -1299,7 +1305,7 @@ def update_pylong_hgt(defpylong, allpylong):
 								pylon[0] = cable[0] # Sets current Pylon HGT to intersecting Cable's HGT
 								updated_pylon_hgts += 1
 							if pylon[1] != cable[1]:
-								pylon[1] = cable[1] # Sets current Pylon HGT to intersecting Cable's HGT
+								pylon[1] = cable[1] # Sets current Pylon CTUU to intersecting Cable's CTUU
 								updated_pylon_ctuus += 1
 				u_pylons_on_cables.updateRow(pylon)
 		write("{0} Pylons with HGT not matching intersecting Cable HGT were updated.".format(updated_pylon_hgts))
@@ -1368,16 +1374,14 @@ def populate_woc(defdam, alldam):
 	lyr_start = dt.now()
 	write("Making feature layers...")
 	if defdam:
-		# fcsubtype = 100330 AND WOC < 0 AND zi026_ctuu = scale
+		# fcsubtype = 100330 AND WOC < 0 AND zi026_ctuu >= scale
 		dam_clause = """{0} = {1} AND {2} < 0 AND {3}""".format(field_delim(hydro_srf, sub_field), sub_dam_s, 'WOC', where_scale)
-		# fcsubtype in (100150, 100152, 100143, 100144) AND ltn > 0 AND zi026_ctuu = scale
-		trans_clause = """{0} in ({1}, {2}, {3}, {4}) AND {5} > 0 AND {6}""".format(field_delim(trans_crv, sub_field), sub_cart_track, sub_road, sub_railway, sub_railway_sidetrack, 'ltn', where_scale)
-
 	if alldam:
-		# fcsubtype = 100330 AND zi026_ctuu = scale
+		# fcsubtype = 100330 AND zi026_ctuu >= scale
 		dam_clause = """{0} = {1} AND {2}""".format(field_delim(hydro_srf, sub_field), sub_dam_s, where_scale)
-		# fcsubtype in (100150, 100152, 100143, 100144) AND ltn > 0 AND zi026_ctuu = scale
-		trans_clause = """{0} in ({1}, {2}, {3}, {4}) AND {5} > 0 AND {6}""".format(field_delim(trans_crv, sub_field), sub_cart_track, sub_road, sub_railway, sub_railway_sidetrack, 'ltn', where_scale)
+
+	# fcsubtype in (100150, 100152, 100143, 100144) AND ltn > 0 AND zi026_ctuu >= scale
+	trans_clause = """{0} in ({1}, {2}, {3}, {4}) AND {5} > 0 AND {6}""".format(field_delim(trans_crv, sub_field), sub_cart_track, sub_road, sub_railway, sub_railway_sidetrack, 'ltn', where_scale)
 
 	make_lyr(hydro_srf, dams_lyr, dam_clause)
 	make_lyr(trans_crv, trans_lyr, trans_clause)
@@ -1443,7 +1447,7 @@ def populate_woc(defdam, alldam):
 								total_car_intersects += 1
 								break
 							elif tran[1] == sub_railway or tran[1] == sub_railway_sidetrack: # else if FCSubtype is Railway or Railway Sidetrack
-								dam[0] = round(tran[2] +2, 1) # WOC = ZI017_GAW + 2 (rounded to 1 decimal)
+								dam[0] = round(tran[2] +2) # WOC = ZI017_GAW + 2 (rounded)
 								dam[1] = 12 # TRS = "Railway"
 								dams.updateRow(dam) # update current Dam record
 								total_train_intersects += 1
@@ -1531,9 +1535,9 @@ def buildings_in_buas():
 	total_2upscale_p = 0
 	total_2descale_p = 0
 	update_field = 'ZI026_CTUU'
-	bua_query = "F_CODE = 'AL020' AND ZI026_CTUU >= 50000" # We don't need to worry about below scale BUAs, right?
-	building_query_2upscale = "F_CODE = 'AL013' AND ZI026_CTUU < 50000" # Maybe less than 250k for building surfaces?
-	building_query_2descale = "F_CODE = 'AL013' AND ZI026_CTUU >= 50000"
+	bua_query = "F_CODE IN ('AL020') AND ZI026_CTUU >= 50000"
+	building_query_2upscale = "F_CODE IN ('AL013') AND ZI026_CTUU < 50000"
+	building_query_2descale = "F_CODE IN ('AL013') AND ZI026_CTUU >= 50000"
 	#caci_ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
 	#caci_ffn_query_2descale = "FFN NOT IN ({0}) AND HGT < 46 AND LMC <> 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
 	ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_p10_combo.values())) #dict_import
@@ -1665,6 +1669,149 @@ def buildings_in_buas():
 	ap.AddWarning("\n{0} Buildings scaled up and {1} Buildings scaled down {2}".format(total_2upscale, total_2descale, runtime(building_start)))
 
 	return bua_count, total_2upscale, total_2descale
+
+def caci_swap():
+	# Initialize task
+	swap_start = dt.now()
+	write("\n--- {0} ---\n".format(tool_names.swap))
+
+	caci_schema, scale_name = snowflake_protocol() # Check for a CACI schema. Special actions are required for their custom nonsense.
+	if not caci_schema:
+		ap.AddError("CACI Swap Scale and CTUU was checked, but the provided TDS does not match CACI schema containing the 'Scale' field.\nCannot run CACI Swap Scale and CTUU")
+		bool_dict[tool_names.swap] = False
+		return
+	else:
+		ap.AddWarning("CACI schema containing '{0}'' field identified".format(scale_name))
+
+	featureclass_caci = featureclass
+	if bool_dict[tool_names.vogon]:
+		featureclass_caci.append('StructureSrf')
+		featureclass_caci.append('StructurePnt')
+
+	write("Swapping CTUU and Scale for {0}".format(gdb_name))
+	write("\nNote: The SAX_RX9 field will be changed from <NULL> to 'Scale Swapped' after the first swap. It will flip back and forth in subsequent runs.\nIf the tool was aborted on a previous run for some reason, it will reset all feature classes to the dominant swap format to maintain internal consistency. It is still up to the user to know which format they were swapping from. (Either Scale->CTUU or CTUU->Scale) Check the tool output for more information on which feature classes were changed.\n")
+	fields = ['zi026_ctuu', 'scale', 'swap', 'progress', 'sax_rx9']
+	fields[1] = str(scale_name)
+
+	write("\nChecking if any previous swaps were canceled. Please wait...")
+	swap_fc = []
+	none_fc = []
+	empty_fc = featurerecess
+	chk_fields = ['sax_rx9', 'scale']
+	chk_fields[1] = str(scale_name)
+	clean_proceed = False
+	swap_dom = False
+	none_dom = False
+	for fc in featureclass_caci:
+		if 'StructureSrf' in featureclass_caci or 'StructurePnt' in featureclass_caci:
+			if not get_count(fc):
+				empty_fc.append(str(fc))
+				continue
+		# field_check = ap.ListFields(fc)
+		# partialchk = False
+		# swapchk = False
+		# for f in field_check:
+		# 	if f.name == "progress":
+		# 		partialchk = True
+		# 	if f.name == "swap":
+		# 		swapchk = True
+		# 		break
+		# if swapchk:
+		# 	continue
+		with ap.da.SearchCursor(fc, chk_fields) as scursor:
+			for row in scursor:
+				if not populated(row[0]):
+					if not populated(row[1]):
+						continue
+					none_fc.append(str(fc))
+					break
+				if row[0] == 'Scale Swapped':
+					if not populated(row[1]):
+						continue
+					swap_fc.append(str(fc))
+					break
+	if len(swap_fc) == 0 or len(none_fc) == 0:
+		clean_proceed = True
+	elif len(swap_fc) > len(none_fc):
+		swap_dom = True
+	elif len(swap_fc) < len(none_fc):
+		none_dom = True
+	if not clean_proceed:
+		write("\n***Previous run was flagged. Resetting feature classes to previous format.***\n")
+		if swap_dom:
+			write("Majority of feature classes tagged as 'Scale Swapped'. Updating the following feature classes to match:")
+			write("\n".join(i for i in none_fc) + "\n")
+		if none_dom:
+			write("Majority of feature classes /not/ tagged as 'Scale Swapped'. Updating the following feature classes to match:")
+			write("\n".join(i for i in swap_fc) + "\n")
+	if clean_proceed:
+		write("Previous swaps finished properly. Continuing...\n")
+
+	# Swippity Swappity Loop
+	for fc in featureclass_caci:
+		if swap_dom and fc in swap_fc:
+			continue
+		if none_dom and fc in none_fc:
+			continue
+		if clean_proceed and fc in empty_fc:
+			write("*Feature Class {0} is empty*".format(fc))
+			continue
+		elif fc in empty_fc:
+			continue
+		#write("swap_dom: {0}\nnone_dom: {1}".format(swap_dom, none_dom)) ###
+		write("Swapping CTUU and Scale fields for {0} features".format(fc))
+		field_check = ap.ListFields(fc)
+		partialchk = False
+		swapchk = False
+		for f in field_check:
+			if f.name == "progress":
+				partialchk = True
+			if f.name == "swap":
+				swapchk = True
+		if not partialchk:
+			ap.AddField_management(fc, "progress", "TEXT", 9) # Creates temporary progress field
+		if not swapchk:
+			ap.AddField_management(fc, "swap", "LONG", 9) # Creates temporary swap field
+		with ap.da.UpdateCursor(fc, fields) as ucursor: # Update cursor to juggle values
+			for row in ucursor:
+				if row[3] == 'y' or row[3] == 'x':
+					continue
+				# Functions as three ring puzzle
+				row[2] = row[1] #swap = scale
+				row[1] = row[0] #scale = ctuu
+				row[0] = row[2] #ctuu = swap
+				row[3] = 'y' #mark row as swapped in previous run that crashed or canceled
+				if not populated(row[4]):
+					row[4] = 'Scale Swapped'
+				elif row[4] == 'Scale Swapped':
+					row[4] = None
+				swap_tag = row[4]
+				ucursor.updateRow(row)
+			write("    SAX_RX9 field value after swap: {0}".format(swap_tag))
+			if partialchk and not clean_proceed:
+				write("Resetting partial feature class to dominant format.")
+				for row in ucursor:
+					if swap_dom and not populated(row[4]):
+						row[2] = row[1] #swap = scale
+						row[1] = row[0] #scale = ctuu
+						row[0] = row[2] #ctuu = swap
+						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
+						row[4] = 'Scale Swapped'
+					if none_dom and row[4] == 'Scale Swapped':
+						row[2] = row[1] #swap = scale
+						row[1] = row[0] #scale = ctuu
+						row[0] = row[2] #ctuu = swap
+						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
+						row[4] = None
+
+		# Deletes temporary swap field
+		ap.DeleteField_management(fc, "swap")
+		ap.DeleteField_management(fc, "progress")
+
+	ap.AddWarning("\n{0} finished in {1}".format(tool_names.swap, runtime(swap_start)))
+	return
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -1806,10 +1953,6 @@ write("\n")
 #----------------------------------------------------------------------
 # refresh_extent() # Refreshes the extent polygon for the whole dataset
 featureclass, featurerecess = create_fc_list() # Create the feature class list with the requested fcs
-# caci_schema, scale_name = snowflake_protocol() # Check for a CACI schema. Special actions are required for their custom nonsense.
-# if bool_dict[tool_names.swap] and not caci_schema:
-# 	bool_dict[tool_names.swap] = False
-# 	ap.AddError("CACI Swap Scale and CTUU was checked, but a CACI schema was not identified.\n** CACI Swap Scale and CTUU will be skipped **")
 if bool_dict[tool_names.disable]:
 	disable_editor_tracking(gdb_name) # Disables Editor Tracking for all feature classes
 mem_grid = grid_chungus() # Create the extent polygon grid for partitioning the data
@@ -2216,188 +2359,6 @@ if bool_dict[tool_names.allbridge]:
 	except ap.ExecuteError:
 		writeresults(tool_names.allbridge)
 
-# ''''''''' Bridge/Tunnel WID Updater '''''''''
-# # Checks for bridges with WID <= Trans WD1 and updates them to match the underlying road or rail WID
-# while bool_dict[tool_names.bridge]:
-# 	bridge_start = dt.now()
-# 	write("\n--- {0} ---\n".format(tool_names.bridge))
-# 	#~~~~~ Royal Decree Variables ~~~~~
-# 	total_bridges = 0
-# 	updated_bridges = 0
-# 	remaining_default_bridges = 0
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# 	if 'TransportationGroundCrv' not in featureclass:
-# 		if ap.Exists('TransportationGroundCrv'):
-# 			ap.AddWarning("TransportationGroundCrv has no features. Moving on.")
-# 		else:
-# 			ap.AddError("\n*** Failed to run {0} ***".format(tool_names.bridge))
-# 			ap.AddError("TransportationGroundCrv feature class missing\n")
-# 		break
-#
-# 	# Pull width and geometry fields for bridges
-# 	bridge_fields = ['WID', 'ZI026_CTUU', 'SHAPE@']
-# 	# Pull width and geometry fields for roads
-# 	road_fields = ['ZI016_WD1', 'ZI026_CTUU', 'SHAPE@']
-# 	# Pull width and geometry fields for cart tracks
-# 	cart_track_fields = ['WID', 'ZI026_CTUU', 'SHAPE@']
-# 	# Pull width and geometry fields for rails and sidetracks
-# 	rail_fields = ['ZI017_GAW', 'ZI026_CTUU', 'SHAPE@']
-#
-# 	# Convert the feature classes from the TDS into usable layers
-# 	write("Making feature layers...")
-# 	make_lyr("TransportationGroundCrv", "bridge_crv_lyr", "F_CODE IN ('AQ040', 'AQ130') AND {0}".format(where_scale))
-# 	make_lyr("TransportationGroundCrv", "road_crv_lyr", "F_CODE IN ('AP030') AND {0}".format(where_scale))
-# 	make_lyr("TransportationGroundCrv", "cart_crv_lyr", "F_CODE IN ('AP010') AND {0}".format(where_scale))
-# 	make_lyr("TransportationGroundCrv", "rail_crv_lyr", "F_CODE IN ('AN010', 'AN050') AND {0}".format(where_scale))
-# 	write("Successfully made the feature layers!")
-#
-# 	# Select road bridges with default (-999999) width
-# 	#select_by_att("bridge_crv_lyr", "NEW_SELECTION", "F_CODE IN ('AQ040', 'AQ130') AND {0}".format(where_scale))
-# 	#select_by_att("bridge_crv_lyr", "SUBSET_SELECTION", "WID = -999999 AND TRS = 13")
-# 	# Make road bridges with default (-999999) width into layer
-# 	#make_lyr("bridge_crv_lyr", "road_cart_bridges", "WID = -999999 AND TRS = 13") #### remove default check to just search all bridges for values <= trans WD1
-# 	#make_lyr("bridge_crv_lyr", "road_cart_bridges", "TRS = 13") #### remove default check to just search all bridges for values <= trans WD1
-#
-# 	# Select rail bridges with default (-999999) width
-# 	#select_by_att("bridge_crv_lyr", "NEW_SELECTION", "F_CODE IN ('AQ040', 'AQ130') AND {0}".format(where_scale))
-# 	#select_by_att("bridge_crv_lyr", "SUBSET_SELECTION", "WID = -999999 AND TRS = 12")
-# 	# Make rail bridges with default (-999999) width into layer
-# 	#make_lyr("bridge_crv_lyr", "rail_bridges", "WID = -999999 AND TRS = 12") #### remove default check to just search all bridges for values <= trans WD1
-# 	#make_lyr("bridge_crv_lyr", "rail_bridges", "TRS = 12") #### remove default check to just search all bridges for values <= trans WD1
-#
-# 	# Select roads that share curve with the default width bridges above
-# 	#select_by_att("road_crv_lyr", "NEW_SELECTION", "F_CODE = 'AP030' AND {0}".format(where_scale))
-# 	select_by_loc("road_crv_lyr", "SHARE_A_LINE_SEGMENT_WITH", "bridge_crv_lyr", "", "NEW_SELECTION")
-# 	# Make roads that share curve with default width bridges into layer
-# 	make_lyr("road_crv_lyr", "roads")
-#
-# 	select_by_loc("cart_crv_lyr", "SHARE_A_LINE_SEGMENT_WITH", "bridge_crv_lyr", "", "NEW_SELECTION")
-# 	make_lyr("cart_crv_lyr", "cart_tracks")
-#
-# 	# Select rails that share curve with the default width bridges above
-# 	#select_by_att("rail_crv_lyr", "NEW_SELECTION", "F_CODE IN ('AN010', 'AN050') AND {0}".format(where_scale))
-# 	select_by_loc("rail_crv_lyr", "SHARE_A_LINE_SEGMENT_WITH", "bridge_crv_lyr", "", "NEW_SELECTION")
-# 	# Make rails that share curve with default width bridges into layer
-# 	make_lyr("rail_crv_lyr", "rails")
-#
-# 	### road_cart_bridges - Bridges and Tunnels at user specified scale with default WID and TRS = Road
-# 	### rail_bridges - Bridges and Tunnels at user specified scale with default WID and TRS = Rail
-# 	### roads - Roads at user specified scale that share a line segment with road_cart_bridges
-# 	### cart_tracks - Cart Tracks at user specified scale that share a line segment with road_cart_bridges
-# 	### rails - Railways and Railway Sidetracks at user specified scale that share a line segment with rail_bridges
-#
-# 	# Gets a count of selected bridges, roads, and rails
-# 	#road_cart_bridges_total = get_count("road_cart_bridges")
-# 	#rail_bridges_total = get_count("rail_bridges")
-# 	total_bridges = get_count("bridge_crv_lyr")
-# 	select_by_att("bridge_crv_lyr", "NEW_SELECTION", "WID = -999999")
-# 	total_default_bridges = get_count("bridge_crv_lyr")
-# 	select_by_att("bridge_crv_lyr", "CLEAR_SELECTION")
-# 	total_roads = get_count("roads")
-# 	total_cart_tracks = get_count("cart_tracks")
-# 	total_rails = get_count("rails")
-#
-# 	# Error handling. If 0 bridges selected the script hangs.
-# 	if not total_bridges:
-# 		ap.AddWarning("No Bridges or Tunnels found.")
-# 		write("{0} finished in {1}".format(tool_names.bridge, runtime(bridge_start)))
-# 		break
-# 	# Error handling. If no roads or rails to select against, likely something will break.
-# 	if not total_roads and not total_cart_tracks and not total_rails:
-# 		ap.AddWarning("{0} Bridges and Tunnels found.".format(total_bridges))
-# 		ap.AddWarning("** No underlying Roads, Cart Tracks, Railways, or Railway Sidetracks for default Bridges and Tunnels. **\n** The default Bridges and Tunnels are either not snapped or missing their underlying Transportation feature. **")
-# 		write("{0} finished in {1}".format(tool_names.bridge, runtime(bridge_start)))
-# 		break
-#
-# 	# Announces the total default bridges found.
-# 	write("{0} Bridges and Tunnels found.".format(total_bridges))
-# 	write("{0} Roads, Cart Tracks, Railways, and Railway Sidetracks found.".format(total_roads + total_cart_tracks + total_rails))
-# 	write("{0} Bridges and Tunnels with default WID = -999999 found.".format(total_default_bridges))
-# 	write("All Bridges and Tunnels will have their width compared against the underlying Transportation feature width.\nThe Bridge and Tunnel width values will be updated based on the underlying Transportation feature width.\n")
-#
-# 	# Start an edit session. Must provide the workspace.
-# 	#edit = ap.da.Editor(os.path.dirname(TDS))
-# 	# Edit session is started without an undo/redo stack for versioned data
-# 	#edit.startEditing(False, True) # For second argument, use False for unversioned data
-#
-# 	road_bridges_updated = 0
-# 	cart_bridges_updated = 0
-# 	rail_bridges_updated = 0
-# 	if total_bridges > 0:
-# 		#edit.startOperation() # Start an edit operation for road bridges
-# 		# Loop to update bridge width to it's corresponding road width
-# 		with ap.da.UpdateCursor("bridge_crv_lyr", bridge_fields) as u_road_bridges: # UpdateCursor for bridges with width and geometry
-# 			for bridge in u_road_bridges:
-# 				with ap.da.SearchCursor("roads", road_fields) as s_roads: # SearchCursor for roads with width and geometry
-# 					for road in s_roads:
-# 						#if bridge[-1].overlaps(road[-1]): # Check if bridge shares curve with road(if not working test contains\within)
-# 						if bridge[-1].overlaps(road[-1]): # Check if bridge shares curve with road(if not working test contains\within)
-# 							if bridge[0] < road[0]:
-# 								bridge[0] = int(road[0]*1.5) # Sets current bridge width to road width * [factor]
-# 							if bridge[1] != road[1]:
-# 								bridge[1] = road[1]
-# 				u_road_bridges.updateRow(bridge)
-# 				road_bridges_updated += 1
-# 		#edit.stopOperation() # Stop the edit operation
-# 		write("{0} Bridges or Tunnels with WID less than Road WD1 were updated.".format(road_bridges_updated))
-#
-# 		#edit.startOperation() # Start an edit operation for cart track bridges
-# 		# Loop to update bridge width to it's corresponding cart track width
-# 		with ap.da.UpdateCursor("bridge_crv_lyr", bridge_fields) as u_cart_bridges: # UpdateCursor for bridges with width and geometry
-# 			for bridge in u_cart_bridges:
-# 				with ap.da.SearchCursor("cart_tracks", cart_track_fields) as s_cart_tracks: # SearchCursor for cart tracks with width and geometry
-# 					for cart_track in s_cart_tracks:
-# 						#if bridge[-1].overlaps(cart_track[-1]): # Check if bridge shares curve with cart track(if not working test contains\within)
-# 						if bridge[-1].overlaps(cart_track[-1]): # Check if bridge shares curve with cart track(if not working test contains\within)
-# 							if bridge[0] < cart_track[0]:
-# 								bridge[0] = int(cart_track[0]*1.5) # Sets current bridge width to cart track width * [factor]
-# 							if bridge[1] != cart_track[1]:
-# 								bridge[1] = cart_track[1]
-# 				u_cart_bridges.updateRow(bridge)
-# 				cart_bridges_updated += 1
-# 		#edit.stopOperation() # Stop the edit operation
-# 		write("{0} Bridges or Tunnels with WID less than Cart Track WID were updated.".format(cart_bridges_updated))
-#
-# 		#edit.startOperation() # Start an edit operation for rail bridges
-# 		# Loop to update bridge width to it's corresponding rail width
-# 		with ap.da.UpdateCursor("bridge_crv_lyr", bridge_fields) as u_rail_bridges: # UpdateCursor for bridges with width and geometry
-# 			for bridge in u_rail_bridges:
-# 				with ap.da.SearchCursor("rails", rail_fields) as s_rails: # SearchCursor for rails with width and geometry
-# 					for rail in s_rails:
-# 						#if bridge[-1].overlaps(rail[-1]): # Check if bridge shares curve with rail(if not working test contains\within)
-# 						if bridge[-1].overlaps(rail[-1]): # Check if bridge shares curve with rail(if not working test contains\within)
-# 							if bridge[0] < rail[0]:
-# 								bridge[0] = int(rail[0])+1 # Sets current bridge width to integer rounded rail gauge width + [value]
-# 							if bridge[1] != rail[1]:
-# 								bridge[1] = rail[1]
-# 				u_rail_bridges.updateRow(bridge)
-# 				rail_bridges_updated += 1
-# 		#edit.stopOperation() # Stop the edit operation
-# 		write("{0} Bridges or Tunnels with WID less than Railway or Railway Sidetrack GAW were updated.".format(rail_bridges_updated))
-# 	write("\n")
-#
-# 	# Stop the edit session and save the changes
-# 	#try:
-# 	#	edit.stopEditing(True)
-# 	#except:
-# 	#	write("First attempt to save failed. Checking for updated SDE version. Trying again in 5 seconds. Please hold...")
-# 	#	time.sleep(5)
-# 	#	edit.stopEditing(True)
-#
-# 	# Select any remaining bridges with default (-999999) width
-# 	#select_by_att("bridge_crv_lyr", "NEW_SELECTION", "F_CODE = 'AQ040' AND {0}".format(where_scale))
-# 	select_by_att("bridge_crv_lyr", "NEW_SELECTION", "WID = -999999")
-# 	# Make these selections into a new layer and get a count
-# 	#make_lyr("bridge_crv_lyr", "bridges_rem")
-# 	remaining_default_bridges = get_count("bridge_crv_lyr")
-# 	# Final messages of the state of the data after tool completion
-# 	updated_bridges = road_bridges_updated + cart_bridges_updated + rail_bridges_updated
-# 	if remaining_default_bridges > 0:
-# 		ap.AddWarning("** {0} Bridges or Tunnels remaining with default WID = -99999. **\n** The default Bridges and Tunnels are either not snapped or missing their underlying road or rail. **".format(remaining_default_bridges))
-# 	ap.AddWarning("{0} Bridges and Tunnels updated with new WID values in {1}".format(updated_bridges, runtime(bridge_start)))
-# 	break
-
 
 #----------------------------------------------------------------------
 ''''''''' All Pylon HGT Updater '''''''''
@@ -2413,107 +2374,6 @@ if bool_dict[tool_names.allpylong]:
 		all_total_pylons, all_updated_pylon_hgts, all_updated_pylon_ctuus, all_remaining_default_pylons = update_pylong_hgt(False, True)
 	except ap.ExecuteError:
 		writeresults(tool_names.allpylong)
-
-# ''''''''' Pylon HGT Updater '''''''''
-# # Checks for pylons with HGT mismatch against intersecting Cables and updates them to match the Cable HGT
-# while bool_dict[tool_names.pylong]:
-# 	pylong_start = dt.now()
-# 	write("\n--- {0} ---\n".format(tool_names.pylong))
-# 	#~~~~~ Royal Decree Variables ~~~~~
-# 	total_pylons = 0
-# 	updated_pylons = 0
-# 	remaining_default_pylons = 0
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# 	if 'UtilityInfrastructurePnt' not in featureclass or 'UtilityInfrastructureCrv' not in featureclass:
-# 		if ap.Exists('UtilityInfrastructurePnt') or ap.Exists('UtilityInfrastructureCrv'):
-# 			ap.AddWarning("Either UtilityInfrastructurePnt or UtilityInfrastructureCrv has no features. Moving on.")
-# 		else:
-# 			ap.AddError("\n*** Failed to run {0} ***".format(tool_names.pylong))
-# 			ap.AddError("UtilityInfrastructurePnt or UtilityInfrastructureCrv feature class missing\n")
-# 		break
-#
-# 	# Pull height and geometry fields
-# 	fields = ['HGT', 'SHAPE@']
-#
-# 	# Convert the feature classes from the TDS into usable layers
-# 	write("Making feature layers...")
-# 	make_lyr("UtilityInfrastructurePnt", "utility_pnt_lyr", "F_CODE = 'AT042' AND {0}".format(where_scale))
-# 	make_lyr("UtilityInfrastructureCrv", "utility_crv_lyr", "F_CODE = 'AT005' AND HGT > 0 AND {0}".format(where_scale))
-# 	write("Successfully made the feature layers!")
-#
-# 	# Select pylons with default (-999999) height
-# 	#select_by_att("utility_pnt_lyr", "NEW_SELECTION", "F_CODE = 'AT042' AND {0}".format(where_scale))
-# 	#select_by_att("utility_pnt_lyr", "SUBSET_SELECTION", "HGT = -999999")
-# 	#make_lyr("utility_pnt_lyr", "fc_pylon_total")
-# 	# Select cables that intersect the default height pylons above and removes any with default height
-# 	#select_by_att("utility_crv_lyr", "NEW_SELECTION", "F_CODE = 'AT005' AND {0}".format(where_scale))
-# 	#select_by_loc("utility_crv_lyr", "INTERSECT", "utility_pnt_lyr", "", "SUBSET_SELECTION")
-# 	#make_lyr("utility_pnt_lyr", "fc_cable_total")
-# 	#select_by_att("utility_crv_lyr", "REMOVE_FROM_SELECTION", "HGT = -999999")
-# 	# Select only the default pylons that intersect cables to speed up run time
-# 	select_by_loc("utility_pnt_lyr", "INTERSECT", "utility_crv_lyr", "", "NEW_SELECTION")
-# 	# Make these selections into layers
-# 	make_lyr("utility_pnt_lyr", "pylons_on_cables")
-# 	select_by_att("utility_pnt_lyr", "CLEAR_SELECTION")
-# 	#make_lyr("utility_crv_lyr", "fc_cable")
-#
-# 	# Gets a count of selected pylons and cables
-# 	total_pylons = get_count("utility_pnt_lyr")
-# 	total_cables = get_count("utility_crv_lyr")
-# 	total_pylons_on_cables = get_count("pylons_on_cables")
-# 	select_by_att("utility_pnt_lyr", "NEW_SELECTION", "HGT = -999999")
-# 	total_default_pylons = get_count("utility_pnt_lyr")
-# 	select_by_att("utility_pnt_lyr", "CLEAR_SELECTION")
-# 	#usable_cables = get_count("fc_cable")
-#
-# 	# Error handling. If 0 pylons selected the script hangs.
-# 	if not total_pylons_on_cables:
-# 		ap.AddWarning("No Pylons intersecting Cables found.")
-# 		write("{0} finished in {1}".format(tool_names.pylong, runtime(pylong_start)))
-# 		break
-# 	# Error handling. If no cables to select against, likely something will break.
-# 	if not total_cables:
-# 		#ap.AddWarning("{0} default value pylons found.".format(total_pylons))
-# 		ap.AddWarning("No Cables with height values found.")
-# 		write("{0} finished in {1}".format(tool_names.pylong, runtime(pylong_start)))
-# 		break
-#
-# 	# Announces the total default pylons found.
-# 	#no_hgt_cable = total_cables - usable_cables
-# 	#y = str(total_pylons - total_pylons_on_cables)
-# 	#y = str(y)
-# 	write("{0} Pylons found.".format(total_pylons))
-# 	write("{0} Cables with height values found.".format(total_cables))
-# 	write("{0} Pylons with default HGT = -999999 found.".format(total_default_pylons))
-# 	write("{0} Pylons are intersecting Cables.".format(total_pylons_on_cables))
-# 	write("These Pylons will have their heights compared against the intersecting Cable heights.\nThe Pylon height values will be updated to match the intersecting Cable height.\n")
-# 	#write("{0} of the intersecting cables don't have a height. These will be ignored.".format(no_hgt_cable))
-# 	#write("{0} Pylons are intersecting a Cable with a height value and will be updated.".format(total_pylons_on_cables))
-#
-# 	# Loop to update pylon height to it's corresponding cable height
-# 	with ap.da.UpdateCursor("pylons_on_cables", fields) as pylons_on_cables: # UpdateCursor for pylons with height and geometry
-# 		for pylon in pylons_on_cables:
-# 			with ap.da.SearchCursor("utility_crv_lyr", fields) as cables: # SearchCursor for cables with height and geometry
-# 				for cable in cables:
-# 					if not pylon[-1].disjoint(cable[-1]): # Check if pylon intersects a cable
-# 						if pylon[0] < cable[0]:
-# 							pylon[0] = cable[0] # Sets current pylon HGT to intersecting cable's HGT
-# 			pylons_on_cables.updateRow(pylon)
-# 			updated_pylons += 1
-#
-# 	# Select any remaining pylons with default (-999999) height
-# 	select_by_att("utility_pnt_lyr", "NEW_SELECTION", "HGT = -999999")
-# 	#select_by_att("fc_pylon", "SUBSET_SELECTION", "HGT = -999999")
-# 	# Make these selections into a new layer and get a count
-# 	#make_lyr("fc_pylon", "pylons_rem")
-# 	remaining_default_pylons = get_count("utility_pnt_lyr")
-# 	# Final messages of the state of the data after tool completion
-# 	#updated_pylons = updated_pylons - remaining_default_pylons
-# 	if remaining_default_pylons > 0:
-# 		ap.AddWarning("** {0} Pylons remaining with default HGT = -999999. **\n** The default Pylons are not snapped, missing a Cable, or the underlying Cable doesn't have a height.".format(remaining_default_pylons))
-# 	ap.AddWarning("{0} Pylons updated with new HGT values in {1}".format(updated_pylons, runtime(pylong_start)))
-# 	break
 
 
 #----------------------------------------------------------------------
@@ -2546,376 +2406,15 @@ if bool_dict[tool_names.building]:
 	except ap.ExecuteError:
 		writeresults(tool_names.building)
 
-#----------------------------------------------------------------------
-# ''''''''' Building in BUA Scaler '''''''''
-# # Descales buildings within BUAs that don't have important FFNs, have a height < 46m, and aren't navigation landmarks
-# # Scales in buildings within BUAs that do have important FFNs, have a height >= 46m, or are navigation landmarks
-# while bool_dict[tool_names.building]:
-# 	# Initialize task
-# 	building_start = dt.now()
-# 	write("\n--- {0} ---\n".format(tool_names.building))
-# 	#~~~~~ Royal Decree Variables ~~~~~
-# 	bua_count = 0
-# 	total_2upscale = 0
-# 	total_2descale = 0
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# 	if not ap.Exists('SettlementSrf'): # Task can't run if SettlementSrf fc is missing
-# 		ap.AddError("\n*** Failed to run {0} ***".format(tool_names.building))
-# 		ap.AddError("SettlementSrf feature class missing\n")
-# 		break
-# 	if not ap.Exists('StructureSrf') and not ap.Exists('StructurePnt'): # Task can't run if both StructureSrf and StructurePnt fcs are missing. Only one is fine.
-# 		ap.AddError("\n*** Failed to run {0} ***".format(tool_names.building))
-# 		ap.AddError("StructureSrf and StructurePnt feature classes missing\n")
-# 		break
-#
-# 	# Intra-task variables
-# 	total_2upscale_s = 0
-# 	total_2descale_s = 0
-# 	total_2upscale_p = 0
-# 	total_2descale_p = 0
-# 	update_field = 'ZI026_CTUU'
-# 	bua_query = "F_CODE = 'AL020' AND ZI026_CTUU >= 50000" # We don't need to worry about below scale BUAs, right?
-# 	building_query_2upscale = "F_CODE = 'AL013' AND ZI026_CTUU < 50000" # Maybe less than 250k for building surfaces?
-# 	building_query_2descale = "F_CODE = 'AL013' AND ZI026_CTUU >= 50000"
-# 	#caci_ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
-# 	#caci_ffn_query_2descale = "FFN NOT IN ({0}) AND HGT < 46 AND LMC <> 1001".format(", ".join(str(i) for i in ad.ffn_list_caci.values())) #dict_import
-# 	ffn_query_2upscale = "FFN IN ({0}) OR HGT >= 46 OR LMC = 1001".format(", ".join(str(i) for i in ad.ffn_list_p9.values())) #dict_import
-# 	ffn_query_2descale = "FFN NOT IN ({0}) AND HGT < 46 AND LMC <> 1001".format(", ".join(str(i) for i in ad.ffn_list_p9.values())) #dict_import
-#
-# 	#----------------------------------------------------------------------
-#
-# 	write("Retrieved Settlement and Structure feature classes")
-# 	# Make layer of BUAs >= 50k
-# 	make_lyr("SettlementSrf", "buas", bua_query)
-# 	#make_tbl("SettlementSrf", "buas", bua_query) # Cannot be used for geometry.
-# 	write("Searching within BUAs")
-# 	bua_count = get_count("buas")
-#
-# 	if not bua_count: # No BUAs to check against buildings. Wrap up task.
-# 		ap.AddWarning("\nNo BUAs found.")
-# 		write("{0} finished in {1}".format(tool_names.building, runtime(building_start)))
-# 		break
-#
-# 	if ap.Exists('StructureSrf'):
-# 		if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
-# 			ap.AddWarning("Disabling Editor Tracking for StructureSrf feature class.")
-# 			ap.DisableEditorTracking_management('StructureSrf')
-#
-# 		# Adam's original important ffn list for just building points: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
-# 		write("Identifying building surfaces matching criteria...\n")
-# 		if caci_schema: # Snowflake Protocol
-# 			write("CACI specific important building FFNs list:")
-# 			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
-#
-# 			# Make layer of building surfaces < 50k, select the buildings within BUAs, and apply the important building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructureSrf", "building_s_12.5k", building_query_2upscale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_s_12.5k_within_2upscale", caci_ffn_query_2upscale)
-#
-# 			# Make layer of building surfaces >= 50k, select the buildings within BUAs, and apply the unimportant building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructureSrf", "building_s_50k+", building_query_2descale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_s_50k+_within_2descale", caci_ffn_query_2descale)
-#
-# 			# # Alternative solution
-# 			# # This starts with a geometry comparison with all structure srfs against BUAs, not just buildings
-# 			# # The current method makes a queries the buildings to limit the number of features before the geometry comparison
-# 			# # That should be faster.
-# 			# # Make layer of BUAs and layer of all building surfaces within those BUAs
-# 			# make_lyr("SettlementSurfaces", "buas", bua_query)
-# 			# make_lyr(
-# 			# 	select_by_loc(
-# 			# 		make_lyr("StructureSrf", "structure_s"),
-# 			# 		"WITHIN", "buas", "", "NEW_SELECTION"),
-# 			# 	"structure_s_within")
-# 			# # Select building surfaces 50k and up that are within BUAs
-# 			# # Make layer of important building surfaces to descale
-# 			# make_lyr(
-# 			# 	select_by_att("structure_s_within", "NEW_SELECTION", building_query_2descale),
-# 			# 	"building_s_50k+_within_2descale", caci_ffn_query_2descale)
-# 			# # Select below scale building surfaces that are within BUAs
-# 			# # Make layer of important building surfaces to upscale
-# 			# make_lyr(
-# 			# 	select_by_att("structure_s_within", "NEW_SELECTION", building_query_2upscale),
-# 			# 	"building_s_12.5k_within_2upscale", caci_ffn_query_2upscale)
-#
-# 		else:
-# 			write("Current project important building FFNs list:")
-# 			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_p9.items())) #dict_import
-#
-# 			# Make layer of building surfaces < 50k, select the buildings within BUAs, and apply the important building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructureSrf", "building_s_12.5k", building_query_2upscale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_s_12.5k_within_2upscale", ffn_query_2upscale)
-#
-# 			# Make layer of building surfaces >= 50k, select the buildings within BUAs, and apply the unimportant building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructureSrf", "building_s_50k+", building_query_2descale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_s_50k+_within_2descale", ffn_query_2descale)
-#
-# 		total_2upscale_s = get_count("building_s_12.5k_within_2upscale")
-# 		total_2descale_s = get_count("building_s_50k+_within_2descale")
-# 		write("\n{0} below scale building surfaces in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_s, bua_count))
-# 		write("{0} building surfaces >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.\n".format(total_2descale_s, bua_count))
-#
-# 		#-----------------------------------
-#
-# 		if total_2upscale_s:
-# 			# Scale in important, tall, or landmark building surfaces within BUAs from below 50k to 250k (per PSG)
-# 			write("Setting below scale important, tall, or landmark building surfaces to 250k...")
-# 			with ap.da.UpdateCursor("building_s_12.5k_within_2upscale", update_field) as ucursor:
-# 				for urow in ucursor:
-# 					urow[0] = 250000
-# 					ucursor.updateRow(urow)
-#
-# 		if total_2descale_s:
-# 			# Descale unimportant, short, and uninteresting building surfaces within BUAs from 50k+ to 12.5k
-# 			write("Setting unimportant, short, and uninteresting building surfaces to 12.5k...")
-# 			with ap.da.UpdateCursor("building_s_50k+_within_2descale", update_field) as ucursor:
-# 				for urow in ucursor:
-# 					urow[0] = 12500
-# 					ucursor.updateRow(urow)
-#
-# 		write("")
-#
-# 	if ap.Exists('StructurePnt'):
-# 		if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
-# 			ap.AddWarning("Disabling Editor Tracking for StructurePnt feature class.")
-# 			ap.DisableEditorTracking_management('StructurePnt')
-#
-# 		# Adam's original important ffn list for just building points: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
-# 		write("Identifying building points matching criteria...\n")
-# 		if caci_schema: # Snowflake Protocol
-# 			write("CACI specific important building FFNs list:")
-# 			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_caci.items())) #dict_import
-#
-# 			# Make layer of building points < 50k, select the buildings within BUAs, and apply the important building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructurePnt", "building_p_12.5k", building_query_2upscale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_p_12.5k_within_2upscale", caci_ffn_query_2upscale)
-#
-# 			# Make layer of building points >= 50k, select the buildings within BUAs, and apply the unimportant building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructurePnt", "building_p_50k+", building_query_2descale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_p_50k+_within_2descale", caci_ffn_query_2descale)
-#
-# 		#-----------------------------------
-#
-# 		else:
-# 			write("Current project important building FFNs list:")
-# 			write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_p9.items())) #dict_import
-#
-# 			# Make layer of building points < 50k, select the buildings within BUAs, and apply the important building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructurePnt", "building_p_12.5k", building_query_2upscale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_p_12.5k_within_2upscale", ffn_query_2upscale)
-#
-# 			# Make layer of building points >= 50k, select the buildings within BUAs, and apply the unimportant building query
-# 			make_lyr(
-# 				select_by_loc(
-# 					make_lyr("StructurePnt", "building_p_50k+", building_query_2descale),
-# 					"WITHIN", "buas", "", "NEW_SELECTION"),
-# 				"building_p_50k+_within_2descale", ffn_query_2descale)
-#
-# 		total_2upscale_p = get_count("building_p_12.5k_within_2upscale")
-# 		total_2descale_p = get_count("building_p_50k+_within_2descale")
-# 		write("\n{0} below scale building points in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_p, bua_count))
-# 		write("{0} building points >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.\n".format(total_2descale_p, bua_count))
-#
-# 		#-----------------------------------
-#
-# 		if total_2upscale_p:
-# 			# Scale in important, tall, or landmark building points within BUAs from below 50k to 50k
-# 			write("Setting below scale important, tall, or landmark building points to 50k...")
-# 			with ap.da.UpdateCursor("building_p_12.5k_within_2upscale", update_field) as ucursor:
-# 				for urow in ucursor:
-# 					urow[0] = 50000
-# 					ucursor.updateRow(urow)
-#
-# 		if total_2descale_p:
-# 			# Descale unimportant, short, and uninteresting building points within BUAs from 50k+ to 12.5k
-# 			write("Setting unimportant, short, and uninteresting building points to 12.5k...")
-# 			with ap.da.UpdateCursor("building_p_50k+_within_2descale", update_field) as ucursor:
-# 				for urow in ucursor:
-# 					urow[0] = 12500
-# 					ucursor.updateRow(urow)
-#
-# 		write("")
-#
-# 	#----------------------------------------------------------------------
-#
-# 	# Count total buildings being upscaled and downscaled
-# 	total_2upscale = total_2upscale_s + total_2upscale_p
-# 	total_2descale = total_2descale_s + total_2descale_p
-#
-# 	# Clean up created layers
-# 	clear_cache(["buas", "building_s_50k+", "building_s_50k+_within_2descale", "building_s_12.5k", "building_s_12.5k_within_2upscale"])
-#
-# 	write("{0} building surfaces scaled to 250k.".format(total_2upscale_s))
-# 	write("{0} building surfaces scaled to 12500.".format(total_2descale_s))
-# 	write("{0} building points scaled to 50000.".format(total_2upscale_p))
-# 	write("{0} building points scaled to 12500.".format(total_2descale_p))
-# 	ap.AddWarning("\n{0} finished in {1}".format(tool_names.building, runtime(building_start)))
-# 	break
-
 
 #----------------------------------------------------------------------
-# ''''''''' CACI Swap Scale and CTUU '''''''''
-# # Swaps the Scale field with the CTUU field so we can work normally with CACI data
-# while bool_dict[tool_names.swap]:
-# 	swap_start = dt.now()
-# 	write("\n--- {0} ---\n".format(tool_names.swap))
-# 	if caci_schema:
-# 		ap.AddWarning("CACI schema containing 'Scale' field identified")
-# 	else:
-# 		ap.AddError("Provided TDS does not match CACI schema containing the 'Scale' field.\nCannot run CACI Swap Scale and CTUU")
-# 		break
-#
-# 	caci_featureclass = featureclass
-# 	if 'StructurePnt' not in caci_featureclass and ap.Exists('StructurePnt'):
-# 		caci_featureclass.append(u'StructurePnt')
-# 	if 'StructureSrf' not in caci_featureclass and ap.Exists('StructureSrf'):
-# 		caci_featureclass.append(u'StructureSrf')
-# 	caci_featureclass.sort()
-#
-# 	write("Swapping CTUU and Scale for {0}".format(gdb_name))
-# 	write("\nNote: The SAX_RX9 field will be changed from <NULL> to 'Scale Swapped' after the first swap. It will flip back and forth in subsequent runs.\nIf the tool was aborted on a previous run for some reason, it will reset all feature classes to the dominant swap format to maintain internal consistency. It is still up to the user to know which format they were swapping from. (Either Scale->CTUU or CTUU->Scale) Check the tool output for more information on which feature classes were changed.\n")
-# 	fields = ['zi026_ctuu', 'scale', 'swap', 'progress', 'sax_rx9']
-# 	fields[1] = str(scale_name)
-#
-# 	# Explicit is better than implicit
-# 	#populated = lambda x: x is not None and str(x).strip() != '' # Finds empty fields. See UFI process
-#
-# 	write("\nChecking if any previous swaps were canceled. Please wait...")
-# 	swap_fc = []
-# 	none_fc = []
-# 	empty_fc = []
-# 	chk_fields = ['sax_rx9', 'scale']
-# 	chk_fields[1] = str(scale_name)
-# 	clean_proceed = False
-# 	swap_dom = False
-# 	none_dom = False
-# 	for fc in caci_featureclass:
-# 		if not get_count(fc):
-# 			empty_fc.append(str(fc))
-# 			continue
-# 		# field_check = ap.ListFields(fc)
-# 		# partialchk = False
-# 		# swapchk = False
-# 		# for f in field_check:
-# 		# 	if f.name == "progress":
-# 		# 		partialchk = True
-# 		# 	if f.name == "swap":
-# 		# 		swapchk = True
-# 		# 		break
-# 		# if swapchk:
-# 		# 	continue
-# 		with ap.da.SearchCursor(fc, chk_fields) as scursor:
-# 			for row in scursor:
-# 				if not populated(row[0]):
-# 					if not populated(row[1]):
-# 						continue
-# 					none_fc.append(str(fc))
-# 					break
-# 				if row[0] == 'Scale Swapped':
-# 					if not populated(row[1]):
-# 						continue
-# 					swap_fc.append(str(fc))
-# 					break
-# 	if len(swap_fc) == 0 or len(none_fc) == 0:
-# 		clean_proceed = True
-# 	elif len(swap_fc) > len(none_fc):
-# 		swap_dom = True
-# 	elif len(swap_fc) < len(none_fc):
-# 		none_dom = True
-# 	if not clean_proceed:
-# 		ap.AddWarning("\n***Previous run was flagged. Resetting feature classes to previous format.***\n")
-# 		if swap_dom:
-# 			ap.AddWarning("Majority of feature classes tagged as 'Scale Swapped'. Updating the following feature classes to match:")
-# 			ap.AddWarning("\n".join(i for i in none_fc) + "\n")
-# 		if none_dom:
-# 			ap.AddWarning("Majority of feature classes /not/ tagged as 'Scale Swapped'. Updating the following feature classes to match:")
-# 			ap.AddWarning("\n".join(i for i in swap_fc) + "\n")
-# 	if clean_proceed:
-# 		write("Previous swaps finished properly. Continuing...\n")
-#
-# 	# Swippity Swappity Loop
-# 	for fc in caci_featureclass:
-# 		if swap_dom and fc in swap_fc:
-# 			continue
-# 		if none_dom and fc in none_fc:
-# 			continue
-# 		if clean_proceed and fc in empty_fc:
-# 			write("*Feature Class {0} is empty*".format(fc))
-# 			continue
-# 		elif fc in empty_fc:
-# 			continue
-# 		#write("swap_dom: {0}\nnone_dom: {1}".format(swap_dom, none_dom)) ###
-# 		write("Swapping CTUU and Scale fields for {0} features".format(fc))
-# 		field_check = ap.ListFields(fc)
-# 		partialchk = False
-# 		swapchk = False
-# 		for f in field_check:
-# 			if f.name == "progress":
-# 				partialchk = True
-# 			if f.name == "swap":
-# 				swapchk = True
-# 		if not partialchk:
-# 			ap.AddField_management(fc, "progress", "TEXT", 9) # Creates temporary progress field
-# 		if not swapchk:
-# 			ap.AddField_management(fc, "swap", "LONG", 9) # Creates temporary swap field
-# 		with ap.da.UpdateCursor(fc, fields) as ucursor: # Update cursor to juggle values
-# 			for row in ucursor:
-# 				if row[3] == 'y' or row[3] == 'x':
-# 					continue
-# 				# Functions as three ring puzzle
-# 				row[2] = row[1] #swap = scale
-# 				row[1] = row[0] #scale = ctuu
-# 				row[0] = row[2] #ctuu = swap
-# 				row[3] = 'y' #mark row as swapped in previous run that crashed or canceled
-# 				if not populated(row[4]):
-# 					row[4] = 'Scale Swapped'
-# 				elif row[4] == 'Scale Swapped':
-# 					row[4] = None
-# 				swap_tag = row[4]
-# 				ucursor.updateRow(row)
-# 			write("    SAX_RX9 field value after swap: {0}".format(swap_tag))
-# 			if partialchk and not clean_proceed:
-# 				write("Resetting partial feature class to dominant format.")
-# 				for row in ucursor:
-# 					if swap_dom and not populated(row[4]):
-# 						row[2] = row[1] #swap = scale
-# 						row[1] = row[0] #scale = ctuu
-# 						row[0] = row[2] #ctuu = swap
-# 						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
-# 						row[4] = 'Scale Swapped'
-# 					if none_dom and row[4] == 'Scale Swapped':
-# 						row[2] = row[1] #swap = scale
-# 						row[1] = row[0] #scale = ctuu
-# 						row[0] = row[2] #ctuu = swap
-# 						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
-# 						row[4] = None
-#
-# 		# Deletes temporary swap field
-# 		ap.DeleteField_management(fc, "swap")
-# 		ap.DeleteField_management(fc, "progress")
-# 	ap.AddWarning("{0} finished in {1}".format(tool_name, runtime(swap_start)))
-# 	break
+''''''''' CACI Swap Scale and CTUU '''''''''
+# Swaps the Scale field with the CTUU field so we can work normally with CACI data
+# if bool_dict[tool_names.swap]:
+# 	try:
+# 		caci_swap()
+# 	except ap.ExecuteError:
+# 		writeresults(tool_names.swap)
 
 
 
@@ -3172,7 +2671,7 @@ while bool_dict[tool_names.vsource]:
 							line = [''.ljust(25),vKey.center(14),sKey.ljust(65),dKey.center(16),str(feat_dict[fKey][vKey][sKey][dKey]).rjust(8)+'\n']
 							txt_file.writelines(line)
 
-	ap.AddWarning("Source Analysis Report created. File located in the same folder as the database:\n{0}\n".format(rresults))
+	ap.AddWarning("Source Analysis Reports created. Files located in the same folder as the database:\n{0}\n{1}\n".format(results_csv, results_txt))
 	ap.AddWarning("{0} finished in {1}".format(tool_names.vsource, runtime(vsource_start)))
 	break
 

@@ -1331,3 +1331,196 @@ def update_bridge_wid(defbridge, allbridge):
 	road_fields = ['ZI016_WD1', 'ZI026_CTUU', 'SHAPE@']
 	cart_track_fields = ['WID', 'ZI026_CTUU', 'SHAPE@']
 	rail_fields = ['ZI017_GAW', 'ZI026_CTUU', 'SHAPE@']
+
+
+#                           __                    __
+#           __       __     \_\  __          __   \_\  __   __       __
+#           \_\     /_/        \/_/         /_/      \/_/   \_\     /_/
+#         .-.  \.-./  .-.   .-./  .-.   .-./  .-.   .-\   .-.  \.-./  .-.
+# `.     //-\\_//-\\_//-\\_//-\\_//-\\_//-\\_// \\_//-\\_//-\\_//-\\_//-\\
+# . `.__//   '-'   '-'\  '-'   '-'  /'-'   '-'\__'-'   '-'__/'-'   '-'\__
+#  `.___/              \__       __/\          \_\       /_/           \_\
+#                       \_\     /_/  \__
+#                                     \_\
+
+
+def snowflake_protocol(): # Checking for CACI schema cz they're "special" and have to make everything so fucking difficult
+	snowflake_start = dt.now()
+	scale_field = 'scale'
+	write("Checking for CACI custom schema...")
+	for fc in featureclass:
+		fc_zero = get_count(fc)
+		if fc_zero == 0:
+			continue
+		else:
+			field_check = ap.ListFields(fc)
+			field_check = [field.name for field in field_check if any([scale_field in field.name.lower()])]
+			if field_check:
+				ap.AddWarning("Variant TDS schema identified in {0}\nSnowflake protocol activated for relevant tools.".format(runtime(snowflake_start)))
+				return True, field_check
+			else:
+				write("Regular TDS schema identified in {0}".format(runtime(snowflake_start)))
+				return False, scale_field
+
+def caci_swap():
+	# Initialize task
+	swap_start = dt.now()
+	write("\n--- {0} ---\n".format(tool_names.swap))
+
+	caci_schema, scale_name = snowflake_protocol() # Check for a CACI schema. Special actions are required for their custom nonsense.
+	if not caci_schema:
+		ap.AddError("CACI Swap Scale and CTUU was checked, but the provided TDS does not match CACI schema containing the 'Scale' field.\nCannot run CACI Swap Scale and CTUU")
+		bool_dict[tool_names.swap] = False
+		return
+	else:
+		ap.AddWarning("CACI schema containing '{0}'' field identified".format(scale_name))
+
+	featureclass_caci = featureclass
+	if bool_dict[tool_names.vogon]:
+		featureclass_caci.append('StructureSrf')
+		featureclass_caci.append('StructurePnt')
+
+	write("Swapping CTUU and Scale for {0}".format(gdb_name))
+	write("\nNote: The SAX_RX9 field will be changed from <NULL> to 'Scale Swapped' after the first swap. It will flip back and forth in subsequent runs.\nIf the tool was aborted on a previous run for some reason, it will reset all feature classes to the dominant swap format to maintain internal consistency. It is still up to the user to know which format they were swapping from. (Either Scale->CTUU or CTUU->Scale) Check the tool output for more information on which feature classes were changed.\n")
+	fields = ['zi026_ctuu', 'scale', 'swap', 'progress', 'sax_rx9']
+	fields[1] = str(scale_name)
+
+	write("\nChecking if any previous swaps were canceled. Please wait...")
+	swap_fc = []
+	none_fc = []
+	empty_fc = featurerecess
+	chk_fields = ['sax_rx9', 'scale']
+	chk_fields[1] = str(scale_name)
+	clean_proceed = False
+	swap_dom = False
+	none_dom = False
+	for fc in featureclass_caci:
+		if 'StructureSrf' in featureclass_caci or 'StructurePnt' in featureclass_caci:
+			if not get_count(fc):
+				empty_fc.append(str(fc))
+				continue
+		# field_check = ap.ListFields(fc)
+		# partialchk = False
+		# swapchk = False
+		# for f in field_check:
+		# 	if f.name == "progress":
+		# 		partialchk = True
+		# 	if f.name == "swap":
+		# 		swapchk = True
+		# 		break
+		# if swapchk:
+		# 	continue
+		with ap.da.SearchCursor(fc, chk_fields) as scursor:
+			for row in scursor:
+				if not populated(row[0]):
+					if not populated(row[1]):
+						continue
+					none_fc.append(str(fc))
+					break
+				if row[0] == 'Scale Swapped':
+					if not populated(row[1]):
+						continue
+					swap_fc.append(str(fc))
+					break
+	if len(swap_fc) == 0 or len(none_fc) == 0:
+		clean_proceed = True
+	elif len(swap_fc) > len(none_fc):
+		swap_dom = True
+	elif len(swap_fc) < len(none_fc):
+		none_dom = True
+	if not clean_proceed:
+		write("\n***Previous run was flagged. Resetting feature classes to previous format.***\n")
+		if swap_dom:
+			write("Majority of feature classes tagged as 'Scale Swapped'. Updating the following feature classes to match:")
+			write("\n".join(i for i in none_fc) + "\n")
+		if none_dom:
+			write("Majority of feature classes /not/ tagged as 'Scale Swapped'. Updating the following feature classes to match:")
+			write("\n".join(i for i in swap_fc) + "\n")
+	if clean_proceed:
+		write("Previous swaps finished properly. Continuing...\n")
+
+	# Swippity Swappity Loop
+	for fc in featureclass_caci:
+		if swap_dom and fc in swap_fc:
+			continue
+		if none_dom and fc in none_fc:
+			continue
+		if clean_proceed and fc in empty_fc:
+			write("*Feature Class {0} is empty*".format(fc))
+			continue
+		elif fc in empty_fc:
+			continue
+		#write("swap_dom: {0}\nnone_dom: {1}".format(swap_dom, none_dom)) ###
+		write("Swapping CTUU and Scale fields for {0} features".format(fc))
+		field_check = ap.ListFields(fc)
+		partialchk = False
+		swapchk = False
+		for f in field_check:
+			if f.name == "progress":
+				partialchk = True
+			if f.name == "swap":
+				swapchk = True
+		if not partialchk:
+			ap.AddField_management(fc, "progress", "TEXT", 9) # Creates temporary progress field
+		if not swapchk:
+			ap.AddField_management(fc, "swap", "LONG", 9) # Creates temporary swap field
+		with ap.da.UpdateCursor(fc, fields) as ucursor: # Update cursor to juggle values
+			for row in ucursor:
+				if row[3] == 'y' or row[3] == 'x':
+					continue
+				# Functions as three ring puzzle
+				row[2] = row[1] #swap = scale
+				row[1] = row[0] #scale = ctuu
+				row[0] = row[2] #ctuu = swap
+				row[3] = 'y' #mark row as swapped in previous run that crashed or canceled
+				if not populated(row[4]):
+					row[4] = 'Scale Swapped'
+				elif row[4] == 'Scale Swapped':
+					row[4] = None
+				swap_tag = row[4]
+				ucursor.updateRow(row)
+			write("    SAX_RX9 field value after swap: {0}".format(swap_tag))
+			if partialchk and not clean_proceed:
+				write("Resetting partial feature class to dominant format.")
+				for row in ucursor:
+					if swap_dom and not populated(row[4]):
+						row[2] = row[1] #swap = scale
+						row[1] = row[0] #scale = ctuu
+						row[0] = row[2] #ctuu = swap
+						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
+						row[4] = 'Scale Swapped'
+					if none_dom and row[4] == 'Scale Swapped':
+						row[2] = row[1] #swap = scale
+						row[1] = row[0] #scale = ctuu
+						row[0] = row[2] #ctuu = swap
+						row[3] = 'x' #mark row as swapped in previous run that crashed or canceled
+						row[4] = None
+
+		# Deletes temporary swap field
+		ap.DeleteField_management(fc, "swap")
+		ap.DeleteField_management(fc, "progress")
+
+	ap.AddWarning("\n{0} finished in {1}".format(tool_names.swap, runtime(swap_start)))
+	return
+
+#----------------------------------------------------------------------
+''''''''' CACI Swap Scale and CTUU '''''''''
+# Swaps the Scale field with the CTUU field so we can work normally with CACI data
+if bool_dict[tool_names.swap]:
+	try:
+		caci_swap()
+	except ap.ExecuteError:
+		writeresults(tool_names.swap)
+
+
+
+
+#                           __                    __
+#           __       __     \_\  __          __   \_\  __   __       __
+#           \_\     /_/        \/_/         /_/      \/_/   \_\     /_/
+#         .-.  \.-./  .-.   .-./  .-.   .-./  .-.   .-\   .-.  \.-./  .-.
+# `.     //-\\_//-\\_//-\\_//-\\_//-\\_//-\\_// \\_//-\\_//-\\_//-\\_//-\\
+# . `.__//   '-'   '-'\  '-'   '-'  /'-'   '-'\__'-'   '-'__/'-'   '-'\__
+#  `.___/              \__       __/\          \_\       /_/           \_\
+#                       \_\     /_/  \__
+#                                     \_\
