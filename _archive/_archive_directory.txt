@@ -1,1 +1,0 @@
-Describe each old version for where it came from and what the major change was.

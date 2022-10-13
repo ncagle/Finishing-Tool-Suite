@@ -10,6 +10,8 @@
 import arcpy as ap
 from arcpy import (AddFieldDelimiters as field_delim,
 	AddMessage as write,
+	AddWarning as greentext,
+	AddError as oops,
 	MakeFeatureLayer_management as make_lyr,
 	MakeTableView_management as make_tbl,
 	SelectLayerByAttribute_management as select_by_att,
@@ -102,6 +104,10 @@ Found a bug
  \_.-'._i__i__i_.'
        """""""""
 
+Crevasse
+A deep crack in ice.
+Crevice
+A narrow opening in rock.
 
 Style Breakdown
 
@@ -121,34 +127,29 @@ Style Breakdown
 ### 3 hashtags in the code - unique variable or identifier
 #### 4 hashtags in the code - things to be updated
 
+
 #### Update Plans
   - Rewrite Repair Geometry with intersect geometry method to remove duplicate vertices and kickbacks? Might be too much spatial processing.
-  - Rewrite Calculate Metrics with manual calculations. Defense mapping tool takes too long and crashes. Kristen is working on it.
-  - For calculating line and polygon metrics, if area or length is tool small throw warning with output. (Don't remember what this means.)
-  - Maybe a pandas dataframe to sort UFIs. Still takes a long time to run.
+  - Rewrite Calculate Metrics with manual calculations. Defense mapping tool takes too long and crashes.
   - Test rewritten Find Identical code and replace existing
-	#### Make a dictionary of runtimes for each tool for royal decree outro
-	#### use old time format
-	|     - Repaired NULL Geometries             |
-	|          Time Elapsed: 00:00:00.000        |
-	|     - Populated F_Codes                    |
-	|          0 F_Code errors fixed             |
-	|          Time Elapsed: 00:00:00.000        |
 
 
 ## Recent Changes
-	Version 9.7
-	- Rewrote UFI check for duplicate and NULL values specifically
-	- Added 'Skip Buildings' option for data with too many buildings (does not apply to Feature Count Report)
-	- Sorted tools into categories
-	- Added Tunnels to Default Bridge/Tunnel WID Updater
+Version 9.7
+2022-04-27
+	- Rewrote UFI check for duplicate and NULL values specifically.
+	- Added 'Skip Buildings' option for data with too many buildings (does not apply to Feature Count Report).
+	- Sorted tools into categories.
+	- Added Tunnels to Default Bridge/Tunnel WID Updater.
 	- CACI Swap Scale and CTUU populates the 'SAX_RX9' field with 'Scale Swapped' the first time the tool is run. It erases the field when the Scale field is swapped back. This only goes back and forth and is dependent on this version of the tool being run when we get the database from CACI.
 	- Added an updated Database Feature Report that outputs in alphabetical order, sorts any empty feature classes, and added more general totals such as total Trans, Hydro, Buildings, and Landcover.
-	- Added an updated Source Analysis Report that outputs in alphabetical order and creates a csv and txt file of the SRT data source, collection dates, and total counts
-	- Added option to Disable Editor Tracking (default true)
+	- Added an updated Source Analysis Report that outputs in alphabetical order and creates a csv and txt file of the SRT data source, collection dates, and total counts.
+	- Added option to Disable Editor Tracking (default true).
 	- More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
 
-	Version 9.8
+
+Version 9.8
+2022-07-14
     - Added option to specify what scale to run the tools on.
         - This applies to the following tools:
 	        - Populate F_Codes
@@ -158,17 +159,21 @@ Style Breakdown
 	        - Integrate Hydrography Features
 	        - Integrate Transportation Features
 	        - Integrate Utility Features
-	        - Hypernova Burst Multipart Features
-	        - Bridge/Tunnel WID Updater
-	        - Pylon HGT Updater
+			- Default Bridge/Tunnel WID Updater
+			- Default Pylon HGT Updater
+			- Default Dam WOC Updater
+			- Hypernova Burst Multipart Features
+	        - All Bridge/Tunnel WID Updater
+	        - All Pylon HGT Updater
+			- All Dam WOC Updater
 	        - Building in BUA Scaler
     - Added option to run tools on only 25k_LOC feature classes.
     - Switched the order of Delete Identical Features and Hypernova Burst Multipart so that any overlapping or kickback multipart features are exploded first and then checked for duplicates and removed.
-    - Limited Calculate Metrics to only look at ARA for Polygons and LZN for Polylines. (This was not standard for the Defense Mapping tool)
+    - Limited Calculate Metrics to only look at ARA for Polygons and LZN for Polylines. (This was not standard for the Defense Mapping tool).
     - Removed layered integration and overhauled the logic behind Integration steps.
         - Refactored Integration and Repair steps as modular functions.
-        - Integrate Hydrography Features includes points (VanishingPoints, NaturalPools, etc.)
-        - Integrate Transportation Features includes points (Ford, Culvert, etc.)
+        - Integrate Hydrography Features includes points (VanishingPoints, NaturalPools, etc.).
+        - Integrate Transportation Features includes points (Ford, Culvert, etc.).
         - Work backwards through the geometry hierarchy to minimize feature shift or disjoint. Lines->Surfaces then Points->Lines.
         - Incorporated incremental snapping with 0.03m tolerance.
             - Snap lines to the nearest surface vertex within 0.03m.
@@ -185,8 +190,7 @@ Style Breakdown
     - Buildings in BUA Scaler has been completely refactored using more efficient logic.
         - Descales buildings within BUAs that don't have important FFNs (client dependent), have a height < 46m, and aren't navigation landmarks (LMC=True).
 	    - Scales in buildings within BUAs that do have important FFNs (client dependent), have a height >= 46m, or are navigation landmarks (LMC=True).
-	- Cleaned up tool outputs and format
-
+	- Cleaned up tool outputs and format.
 
 Backend Updates (for nerds):
     - Updated and organized module imports.
@@ -200,59 +204,84 @@ Backend Updates (for nerds):
     - Added a TDS error check for broken Catalog references. Make sure the file path points to the correct database. Dragging the TDS from the Catalog window to the tool occasionally references a filepath that no longer exists since ArcMap is to lazy to update it's object linkages regularly. Renaming a copied or newly created GDB can cause this. A lingering LOCK file still references the pre-change version, and the only way to update it is to manually input the correct path in the tool or restart ArcMap.
     - Added checks for if a feature class exists by checking it against the featureclass list, output that information to the user and skip sections of code accordingly.
     - Added a function to recalculate feature class extents. This repairs discrepancies in data extent boundaries after spatial edits in the SDE.
-    - Added a function to construct the fishnet grid for partitioning large datasets into chunks using the Extent environment variable. This is now feature class independent. It is the first step in fully partitioning entire datasets for massive geospatial processing on only a Dell Optiplex with 8GB of RAM and a Core i5.
+    - Added a function to construct the fishnet grid for partitioning large datasets into chunks using the Extent environment variable. This is now feature class independent. It is the first step in fully partitioning entire datasets for massive geospatial processing on limited computer resources.
     - Fixed comma tuple bug in Calculate Metrics.
     - Changed the output for Update UFI Values to more accurately show which one is actively being worked on. User reading comprehension leaves something to be desired.
     - Removed use of the Defense Mapping extension in Hypernova Burst Multipart Features when calculating new default values.
     - CACI Swap scale_name variable was missing a definition after the last update. Added a second return value from the snowflake_protocol function for whatever CACI's unique Scale field name happens to be for any given schema.
     - Repair All NULL Geometries, Populate F_Codes, Calculate Default Values, Calculate Metrics, Update UFI Values, Integrate Hydrography Features, Integrate Transportation Features, and Integrate Utility Features have been refactored into functions.
 	- Updated function aliases in code as well as replaced redundant code with recently made functions.
-	- create_fc_list() now runs get_count() for each feature class in the dataset at the start and constructs the list with only feature classes that have records.
+	- The create_fc_list function now runs get_count function for each feature class in the dataset at the start and constructs the list with only feature classes that have records.
 
 
+Version 9.8.5
 2022-08-04
-## Updated tool names
-## Updated outro summary phrasing and statistics
-## Updated create_fc_list() logic for detecting metadata and resource surfaces. And updated how it sorts and filters feature classes.
-## runtime() - fix grammar for singular hour and minute outputs
-## if not caci schema and caci swap is checked, set caci swap to FALSE to skip it entirely
-## add runtime() output for constructing fishnet. just for funsies
+	- Bridge/Tunnel WID Updater, Pylon HGT Updater, and Building in BUA Scaler have been refactored into functions.
+	- Updated function aliases in code as well as replaced redundant code with recently made functions.
+	- Updated tool names.
+	- Updated outro summary phrasing, formatting, and statistics.
+	- Updated create_fc_list function logic for detecting metadata and resource surfaces, and updated how it sorts and filters feature classes.
+	- Fixed grammar for singular hour and minute outputs in runtime function.
+	- If CACI Swap Scale and CTUU is checked but the GDB is not a caci schema, the CACI Swap tool parameter is set to FALSE to skip it entirely.
+	- Added the runtime function output to the fishnet construction (grid_chungus) function.
 
-Hypernova Burst Multipart Features
-## updated summary of exploded features for accuracy
+	- Hypernova Burst Multipart Features
+		- Updated calculation of exploded feature counts.
 
-Database Feature Report
-## Added Utility feature count
+	- Database Feature Report
+		- Added Utility feature count.
 
-Bridge/Tunnel WID Updater
-- Bridge/Tunnel WID Updater now checks for Bridges with WID <= Trans WD1 and updates them dependent on the underlying Road or Rail.
-## Now with added cart tracks!
-## updates WID less than trans, not just default
-## updates mismatched CTUU so bridge matches trans feature
-## updated bridge/trans shared geometry method
-## rewrote tool output statistics
-## updated feature comparison criteria
+	- Bridge/Tunnel WID Updater
+		- Split tool into Default Bridge/Tunnel WID Updater and All Bridge/Tunnel WID Updater. 'Default' isolates Bridges/Tunnels with default WID values for processing to save time. 'All' checks all features for any mismatched WID, not just default WID.
+		- Bridge/Tunnel WID Updater can now check for Bridges/Tunnels with WID <= Trans width and updates them based on the underlying Trans feature.
+		- Now with added cart tracks! Yum!
+		- Updates mismatched CTUU values so the Bridge/Tunnel feature matches its underlying Trans feature.
+		- Updated Bridge/Tunnel-Trans shared geometry method.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
 
-Pylon HGT Updater
-- Pylon HGT Updater now checks Pylons against intersecting Cables with HGT mismatch and updates the Pylon HGT to match the Cable HGT.
-## Updates HGT less than cables, not just default
-## rewrote tool output statistics
-## updated feature comparison criteria
-
+	- Pylon HGT Updater
+		- Split tool into Default Pylon HGT Updater and All Pylon HGT Updater. 'Default' isolates Pylons with default HGT values for processing to save time. 'All' checks all Pylons for any mismatched HGT, not just default HGT.
+		- Pylon HGT Updater can now check Pylons against intersecting Cables for mismatched HGT values and updates the Pylon HGT to match the Cable HGT.
+		- Updates mismatched CTUU values so the Pylon feature matches its intersecting Cable feature.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
 
 2022-08-24
-## simplified runtime() to only have start variable and automatically get finish at time of execution
-## updated parameters in all runtime() functions
-## Update important FFN list for Project 10 requirements
-## Refactor and include Dam WOC Updater
-## add Raven Queen to royal decree and secret parameter
-## If there are no features, skip tool runs. Add checks for populated features for feature specific tools.
+	- Reformatted Tool Dialogue layout to have one category for Finishing Tools and one category for Preprocessing Tools.
+	- CACI Swap Scale and CTUU has been refactored into a function.
+	- Updated function aliases in code as well as replaced redundant code with recently made functions.
+	- Simplified runtime function to only have start variable and automatically get finish at time of execution.
+	- Updated parameters in all runtime functions.
+	- Updated important FFN list for Project 10 requirements. Uses a combination of Hexagon and Maxar requirements. Makes best assumptions based on vague guidance.
+	- Refactored and included Dam WOC Updater as a function.
+		- Split tool into Default Dam WOC Updater and All Dam WOC Updater. 'Default' isolates Dams with default WOC values for processing to save time. 'All' checks all features for any incorrect or unpopulated WOC, not just default WOC.
+		- Updates Dam TRS based on its dominant spatial relationship to any intersecting Trans features or lack thereof.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
+	- Added Raven Queen to royal decree and Secret Finishing Version parameter.
+	- Removed CACI Swap Scale and CTUU and associated checks. Functions are still present, but disabled.
 
 
-Crevasse
-A deep crack in ice.
-Crevice
-A narrow opening in rock.
+Version 9.8.7
+2022-10-11
+	- Added Partition Cores option for choosing how to partition large dataset to allow for processing with limited computer resources.
+	- Confirmed that the Calculate Default Values tool does not, in fact, populate NULL Version fields. That field is skipped in default value processing.
+	- Updated tool validation script.
+	- Updated feature checks for feature specific tools. Allows for tasks to continue after encountering a feature class that is not present in the dataset or does not contain any of the necessary features.
+	- Added Tool Help descriptions for all Finishing Tool Suite parameters and tool options.
+	- Added logo.
+	- Created tool documentation.
+	- Created Manual Finishing Preparation and Repair documentation of the steps required to manually perform the same tasks as the Finishing Tool Suite.
+	- Rewrote Update UFI Values logic to handle godzilla databases. Overall speed of tool has increased by 192%.
+	- Restructured creation of the feature class list for processing to preemptively store feature counts and reduce multiple redundant duplicate redundancies.
+	- Updated text formatting for error handling and important task details/results.
+
+## Increased vertex tolerance for feature specific tools to match GAIT tolerance and massively reduce GAIT errors without creating additional tangential GAIT errors.
+
+v9.7-v9.8.7: 120 updates
+
+
 
 
 '''
@@ -288,8 +317,8 @@ A narrow opening in rock.
 #----------------------------------------------------------------------
 def TDS_check(TDS):
 	if not ap.Exists(TDS):
-		ap.AddError('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
-		ap.AddError("Dataset {0} does not exist.\nPlease double check that the file path is correct.\nExitting tool...\n".format(TDS))
+		oops('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
+		oops("Dataset {0} does not exist.\nPlease double check that the file path is correct.\nExitting tool...\n".format(TDS))
 		sys.exit(0)
 
 
@@ -305,10 +334,23 @@ username = os.environ['USERNAME']
 secret = ap.GetParameterAsText(1) # Password for Finishing easter egg
 ### [2] Scale to run tools: ZI026_CTUU >= - String Value List
 where_scale = "zi026_ctuu >= {0}".format(ap.GetParameterAsText(2))
+cores = str(int(math.sqrt(int(ap.GetParameterAsText(3)))))
 
 #-----------------------------------
-### [3] Options .............. String Value List
+### [4] Options .............. String Value List
 ### Tool Processing Options:   ['Use 25k_LOC feature classes only', 'Disable Editor Tracking', 'Skip Buildings']
+### [5] Finishing         String Value List
+### Finishing Tools :     ['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values',
+###						   'Integrate Hydrography Features', 'Integrate Transportation Features', 'Integrate Utility Features',
+###						   'Default Bridge/Tunnel WID Updater', 'Default Pylon HGT Updater', 'Default Dam WOC Updater', 'Hypernova Burst Multipart Features',
+###						   'Delete Identical Features']
+### Default:
+### 'Repair All NULL Geometries';'Populate F_Codes';'Calculate Default Values';'Calculate Metrics';'Update UFI Values';'Integrate Hydrography Features';'Integrate Transportation Features';'Integrate Utility Features';'Hypernova Burst Multipart Features';'Delete Identical Features'
+### [6] Preprocessing     String Value List
+### Preprocessing Tools:  ['All Bridge/Tunnel WID Updater', 'All Pylon HGT Updater', 'All Dam WOC Updater', 'Building in BUA Scaler', 'Database Feature Report',
+###						   'Source Analysis Report']
+### Default:
+
 ### [6] Maintenance .......... String Value List
 ### Data Maintenance Tools:    ['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values']
 ### [7] Integration .......... String Value List
@@ -320,18 +362,7 @@ where_scale = "zi026_ctuu >= {0}".format(ap.GetParameterAsText(2))
 ### [10] Management .......... String Value List
 ### Database Management Tools: ['Database Feature Report', 'Source Analysis Report']
 
-### [4] Finishing         String Value List
-### Finishing Tools       ['Repair All NULL Geometries', 'Populate F_Codes', 'Calculate Default Values', 'Calculate Metrics', 'Update UFI Values',
-###						   'Integrate Hydrography Features', 'Integrate Transportation Features', 'Integrate Utility Features',
-###						   'Default Bridge/Tunnel WID Updater', 'Default Pylon HGT Updater', 'Default Dam WOC Updater', 'Hypernova Burst Multipart Features',
-###						   'Delete Identical Features']
-### Default
-### 'Repair All NULL Geometries';'Populate F_Codes';'Calculate Default Values';'Calculate Metrics';'Update UFI Values';'Integrate Hydrography Features';'Integrate Transportation Features';'Integrate Utility Features';'Hypernova Burst Multipart Features';'Delete Identical Features'
-### [9] Preprocessing     String Value List
-### Preprocessing Tools:  ['All Bridge/Tunnel WID Updater', 'All Pylon HGT Updater', 'All Dam WOC Updater', 'Building in BUA Scaler', 'Database Feature Report',
-###						   'Source Analysis Report']
-### Default:
-tool_list = ap.GetParameter(3) + ap.GetParameter(4) + ap.GetParameter(5)
+tool_list = ap.GetParameter(4) + ap.GetParameter(5) + ap.GetParameter(6)
 
 #-----------------------------------
 #autopcf = ap.GetParameter()
@@ -407,7 +438,7 @@ def write_info(name, var): # Write information for given variable
 	write("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 def writeresults(tool_name): # If tool fails, get messages and output error report before endind process
-	ap.AddError("\n\n***Failed to run {0}.***\n".format(tool_name))
+	oops("\n\n***Failed to run {0}.***\n".format(tool_name))
 	trace_back = ''
 	tb_info = ''
 	python_errors = ''
@@ -423,20 +454,20 @@ def writeresults(tool_name): # If tool fails, get messages and output error repo
 		pass
 
 	if len(warnings) > 0:
-		ap.AddError("Tool Warnings:")
-		ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		ap.AddError(warnings)
-		ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-	ap.AddError("Error Report:")
-	ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-	ap.AddError(python_errors)
-	ap.AddError(arcpy_errors)
-	ap.AddError("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-	ap.AddError('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
-	ap.AddError("Please rerun the tool.")
-	ap.AddError("Go double check the tool outputs above for more information on where the tool failed.")
-	ap.AddError("If the error persists, uncheck the {0} tool option before rerunning.\nEither the feature class is too big or something else has gone wrong.".format(tool_name))
-	ap.AddError("Exiting tool.\n")
+		oops("Tool Warnings:")
+		oops("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+		oops(warnings)
+		oops("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+	oops("Error Report:")
+	oops("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+	oops(python_errors)
+	oops(arcpy_errors)
+	oops("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+	oops('                       ______\n                    .-"      "-.\n                   /            \\\n       _          |              |          _\n      ( \\         |,  .-.  .-.  ,|         / )\n       > "=._     | )(__/  \\__)( |     _.=" <\n      (_/"=._"=._ |/     /\\     \\| _.="_.="\\_)\n             "=._ (_     ^^     _)"_.="\n                 "=\\__|IIIIII|__/="\n                _.="| \\IIIIII/ |"=._\n      _     _.="_.="\\          /"=._"=._     _\n     ( \\_.="_.="     `--------`     "=._"=._/ )\n      > _.="                            "=._ <\n     (_/                                    \\_)\n')
+	oops("Please rerun the tool.")
+	oops("Go double check the tool outputs above for more information on where the tool failed.")
+	oops("If the error persists, uncheck the {0} tool option before rerunning.\nEither the feature class is too big or something else has gone wrong.".format(tool_name))
+	oops("Exiting tool.\n")
 	sys.exit(0)
 	#print(u'                 uuuuuuu\n             uu$$$$$$$$$$$uu\n          uu$$$$$$$$$$$$$$$$$uu\n         u$$$$$$$$$$$$$$$$$$$$$u\n        u$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$$$$$$$$$$$$$$$$$$$$u\n       u$$$$$$"   "$$$"   "$$$$$$u\n       "$$$$"      u$u       $$$$"\n        $$$u       u$u       u$$$\n        $$$u      u$$$u      u$$$\n         "$$$$uu$$$   $$$uu$$$$"\n          "$$$$$$$"   "$$$$$$$"\n            u$$$$$$$u$$$$$$$u\n             u$"|¨|¨|¨|¨|"$u\n  uuu        $$u|¯|¯|¯|¯|u$$       uuu\n u$$$$        $$$$$u$u$u$$$       u$$$$\n  $$$$$uu      "$$$$$$$$$"     uu$$$$$$\nu$$$$$$$$$$$uu    """""    uuuu$$$$$$$$$$\n$$$$"""$$$$$$$$$$uuu   uu$$$$$$$$$"""$$$"\n """      ""$$$$$$$$$$$uu ""$"""\n           uuuu ""$$$$$$$$$$uuu\n  u$$$uuu$$$$$$$$$uu ""$$$$$$$$$$$uuu$$$\n  $$$$$$$$$$""""           ""$$$$$$$$$$$"\n   "$$$$$"                      ""$$$$""\n     $$$"                         $$$$"')
 
@@ -491,10 +522,10 @@ def existential_panic(fc, toolname): # If current fc is empty, proceed with caut
 	#	else:
 	#		pass or return tool_variables
 	if fc in featurerecess: # List of feature classes that have 0 records
-		ap.AddWarning("\n~~~ {0} has no features. Moving on. ~~~\n".format(fc))
+		greentext("\n~~~ {0} has no features. Moving on. ~~~\n".format(fc))
 		return False
 	if fc not in featureclass and fc not in featurerecess: # If fc is not in either list, then it doesn't exist in the dataset
-		ap.AddError("\n*** {0} is missing from the TDS dataset. Failed to run {1}. ***\n".format(fc, toolname))
+		oops("\n*** {0} is missing from the TDS dataset. Failed to run {1}. ***\n".format(fc, toolname))
 		return True
 
 #-----------------------------------
@@ -564,84 +595,71 @@ def create_fc_list():
 		if bool_dict[tool_names.vogon]:
 			featureclass_loc.remove('StructureSrf')
 			featureclass_loc.remove('StructurePnt')
-			ap.AddWarning("StructureSrf and StructurePnt will be skipped in processing.")
+			greentext("StructureSrf and StructurePnt will be skipped in processing.")
 
 		#featureclass = [fc for fc in featureclass if fc_exists(fc, 'Finishing Tool') and get_count(fc)]
-		featureclass = []
+		fc_counts = {}
 		featurerecess = []
 		for fc in featureclass_loc:
 			count = get_count(fc)
 			if count:
-				featureclass.append(fc)
+				fc_counts[fc] = count
 				write("    - {0} {1} features".format(count, fc))
 			else:
 				featurerecess.append(fc)
-				ap.AddWarning("    > {0} has {1} features".format(fc, count))
+				greentext("    > {0} has {1} features".format(fc, count))
 
+		featureclass = fc_counts.keys()
 		featureclass.sort()
 		write("Loaded {0} of 55 TDSv7.1 feature classes in {1}".format(len(featureclass), runtime(fc_list_start)))
-		return featureclass
+		return fc_counts, featureclass, featurerecess
 
 	#featureclass = ap.ListFeatureClasses()
 	#featureclass = [fc for fc in featureclass if get_count(fc)]
 	#featureclass = [fc for fc in ap.ListFeatureClasses() if get_count(fc)]
-	featureclass = []
+	fc_counts = {}
 	featurerecess = []
 	for fc in sorted(ap.ListFeatureClasses()):
 		if bool_dict[tool_names.vogon]:
 			if 'StructurePnt' in fc:
-				ap.AddWarning("StructurePnt will be skipped in processing.")
+				print("StructurePnt will be skipped in processing.")
 				continue
 			if 'StructureSrf' in fc:
-				ap.AddWarning("StructureSrf will be skipped in processing.")
+				print("StructureSrf will be skipped in processing.")
 				continue
+		if 'MetadataSrf' in fc:
+			print("MetadataSrf will be skipped in processing.")
+			continue
+		if 'ResourceSrf' in fc:
+			print("ResourceSrf will be skipped in processing.")
+			continue
 		count = get_count(fc)
 		if count:
-			featureclass.append(fc)
+			fc_counts[fc] = count
 			write("    - {0} {1} features".format(count, fc))
 		else:
 			featurerecess.append(fc)
-			ap.AddWarning("    > {0} has {1} features".format(fc, count))
+			greentext("    > {0} has {1} features".format(fc, count))
 
 	# Formatting Feature Class list
-	if 'MetadataSrf' in featureclass:
-		featureclass.remove('MetadataSrf')
-		write("MetadataSrf removed")
-	else:
-		write("MetadataSrf has 0 features or is not present")
-	if 'ResourceSrf' in featureclass:
-		featureclass.remove('ResourceSrf')
-		write("ResourceSrf removed")
-	else:
-		write("ResourceSrf has 0 features or is not present")
-	# if bool_dict[tool_names.vogon]:
-	# 	if 'StructureSrf' in featureclass:
-	# 		featureclass.remove('StructureSrf')
-	# 	if 'StructurePnt' in featureclass:
-	# 		featureclass.remove('StructurePnt')
-	# 	ap.AddWarning("StructureSrf and StructurePnt will be skipped in processing.")
-
+	featureclass = fc_counts.keys()
 	featureclass.sort()
 	write("Loaded {0} of 55 TDSv7.1 feature classes in {1}".format(len(featureclass), runtime(fc_list_start)))
-	return featureclass, featurerecess
+	return fc_counts, featureclass, featurerecess
 
 def snowflake_protocol(): # Checking for CACI schema cz they're "special" and have to make everything so fucking difficult
 	snowflake_start = dt.now()
 	scale_field = 'scale'
 	write("Checking for CACI custom schema...")
 	for fc in featureclass:
-		fc_zero = get_count(fc)
-		if fc_zero == 0:
-			continue
+		field_check = ap.ListFields(fc)
+		field_check = [field.name for field in field_check if any([scale_field in field.name.lower()])]
+		if field_check:
+			greentext("Variant TDS schema identified in {0}\nSnowflake protocol activated for relevant tools.".format(runtime(snowflake_start)))
+			return True, field_check
 		else:
-			field_check = ap.ListFields(fc)
-			field_check = [field.name for field in field_check if any([scale_field in field.name.lower()])]
-			if field_check:
-				ap.AddWarning("Variant TDS schema identified in {0}\nSnowflake protocol activated for relevant tools.".format(runtime(snowflake_start)))
-				return True, field_check
-			else:
-				write("Regular TDS schema identified in {0}".format(runtime(snowflake_start)))
-				return False, scale_field
+			write("Regular TDS schema identified in {0}".format(runtime(snowflake_start)))
+			return False, scale_field
 
 def disable_editor_tracking(gdb_name): # Automatically disables editor tracking for each feature class that doesn't already have it disabled
 	disable_start = dt.now()
@@ -657,7 +675,7 @@ def disable_editor_tracking(gdb_name): # Automatically disables editor tracking 
 					firstl = True
 				write("{0} - Disabled".format(fc))
 			except:
-				ap.AddWarning("Error disabling editor tracking for {0}. Please check the data manually and try again.".format(fc))
+				greentext("Error disabling editor tracking for {0}. Please check the data manually and try again.".format(fc))
 				pass
 	if firstl:
 		write("Editor Tracking has been disabled.")
@@ -709,7 +727,7 @@ def grid_chungus(): #Create fishnet grid to partition large datasets into chunks
 	write("Constructing fishnet over dataset for partitioning data into chunks.\nThis helps our potatoes handle the large scale geospatial databases we have to process.")
 	#### Vertex Density Check to determine if a 2x2, 3x3, or larger should be used for really big honkin data
 	#ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", "2", "2", corner_coord, "NO_LABELS", "", "POLYGON")
-	ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", "3", "3", corner_coord, "NO_LABELS", "", "POLYGON")
+	ap.CreateFishnet_management(mem_fc, origin_coord, y_axis_coord, "", "", cores, cores, corner_coord, "NO_LABELS", "", "POLYGON")
 	write("Spatial data partitions constructed in {0}".format(runtime(chungus_start)))
 	return mem_fc
 
@@ -721,7 +739,7 @@ def repair_geometry():
 		write("Repairing NULL geometries in {0}".format(fc))
 		ap.RepairGeometry_management(fc, "DELETE_NULL")
 		#ap.RepairBadGeometry_production(featureclass, 'REPAIR_ONLY', 'DELETE_NULL_GEOMETRY', '#') # Repair Bad Geometry Production Mapping tool
-	ap.AddWarning("{0} finished in {1}".format(tool_names.repair, runtime(repair_start)))
+	greentext("{0} finished in {1}".format(tool_names.repair, runtime(repair_start)))
 
 #-----------------------------------
 def pop_fcode():
@@ -741,8 +759,8 @@ def pop_fcode():
 			write("Updated {0} {1} feature F_Codes".format(fcode_count, fc))
 			fcode_total += fcode_count
 		except:
-			ap.AddWarning("{0} does not contain F_codes.".format(fc))
-	ap.AddWarning("{0} F_Code errors fixed in {1}".format(fcode_total, runtime(fcode_start)))
+			greentext("{0} does not contain F_codes.".format(fc))
+	greentext("{0} F_Code errors fixed in {1}".format(fcode_total, runtime(fcode_start)))
 	return fcode_total
 
 #-----------------------------------
@@ -776,8 +794,8 @@ def process_defaults(fc_list):
 	for fc in fc_list:
 		out_fields = ['shape', 'area', 'length', 'created', 'edited', 'f_code', 'fcsubtype', 'ufi', 'version']
 		in_types = ['Double', 'Integer', 'Single', 'SmallInteger']
-		string_fields = [field.name for field in arcpy.ListFields(fc, None, 'String') if not any(substring in field.name for substring in out_fields)]
-		number_fields = [field.name for field in arcpy.ListFields(fc) if field.type in in_types and not any(substring in field.name for substring in out_fields)]
+		string_fields = [field.name for field in arcpy.ListFields(fc, None, 'String') if not any(substring in field.name.lower() for substring in out_fields)]
+		number_fields = [field.name for field in arcpy.ListFields(fc) if field.type in in_types and not any(substring in field.name.lower() for substring in out_fields)]
 		string_fields.sort()
 		number_fields.sort()
 		fc_nulls = 0
@@ -787,7 +805,7 @@ def process_defaults(fc_list):
 		if fc_nulls > 0:
 			write("  - {0} NULL values populated".format(fc_nulls))
 		count_nulls += fc_nulls
-	ap.AddWarning("{0} NULL values populated with defaults in {1}".format(count_nulls, runtime(defaults_start)))
+	greentext("{0} NULL values populated with defaults in {1}".format(count_nulls, runtime(defaults_start)))
 
 #-----------------------------------
 def calc_metrics():
@@ -805,7 +823,7 @@ def calc_metrics():
 			write("Calculating Area field for {0}".format(fc))
 			ap.CalculateMetrics_defense('fc_lyr', 'AREA', "#", "#", "ARA", "#", "#", "#")
 			arcdel('fc_lyr')
-	ap.AddWarning("{0} finished in {1}".format(tool_names.metrics, runtime(metrics_start)))
+	greentext("{0} finished in {1}".format(tool_names.metrics, runtime(metrics_start)))
 
 #-----------------------------------
 def update_ufi():
@@ -813,26 +831,15 @@ def update_ufi():
 	write("\n--- {0} ---\n".format(tool_names.ufi))
 	ufi_total = 0
 	for fc in featureclass:
-		write("Searching {0} UFIs in {1} for invalid or missing values.".format(get_count(fc), fc))
-		ufi_count = 0
-		with ap.da.SearchCursor(fc, 'ufi', where_scale) as scursor:
-			values = [srow[0] for srow in scursor]
+		ufi_fc_start = dt.now()
+		write("Scanning {0} UFIs in {1}...".format(fc_counts[fc], fc))
 		with ap.da.UpdateCursor(fc, 'ufi', where_scale) as ucursor:
 			for urow in ucursor:
-				if not populated(urow[0]):
-					urow[0] = str(uuid.uuid4())
-					ufi_count += 1
-				elif len(urow[0]) != 36: # 36 character random alphanumeric string
-					urow[0] = str(uuid.uuid4()) # GOTOHELL-FUCK-COCK-PISS-MOTHERFUCKER and LEONARDO-EATS-FROG-EGGS-DISGUSTINGLY are valid XD
-					ufi_count += 1
-				elif values.count(urow[0]) > 1:
-					urow[0] = str(uuid.uuid4())
-					ufi_count += 1
+				urow[0] = str(uuid.uuid4())
 				ucursor.updateRow(urow)
-			if ufi_count:
-				write("  - {0} UFIs updated".format(ufi_count))
-			ufi_total += ufi_count
-	ap.AddWarning("{0} invalid or missing UFI values updated in {1}".format(ufi_total, runtime(ufi_start)))
+		ufi_total += fc_counts[fc]
+		write("Updated UFIs in {0}".format(runtime(ufi_fc_start)))
+	greentext("{0} total UFI values updated in {1}".format(ufi_total, runtime(ufi_start)))
 	return ufi_total
 
 #-----------------------------------
@@ -841,7 +848,9 @@ def update_ufi():
 # 	arcpy.RemoveCutbacks_production(roads, minimum_angle, "SEQUENTIAL", '#', 'IGNORE_SNAPPED_POINTS', '#')
 
 def snap_lines_to_srf(lines, srf):
-	vertex_env = [srf, "VERTEX", "0.03 Meters"] # Snap lines to the nearest srf vertex within 0.03m
+	#tolerance = "0.03 Meters"
+	tolerance = "1 Meters"
+	vertex_env = [srf, "VERTEX", tolerance] # Snap lines to the nearest srf vertex within 0.03m
 	edge_env = [srf, "EDGE", "0.03 Meters"] # Snap remaining lines to the nearest srf edge within 0.03m
 	write("Snapping line end nodes to rank 1 surface vertices rank 2 surface edges.")
 	ap.Snap_edit(lines, [vertex_env, edge_env])
@@ -850,7 +859,9 @@ def snap_lines_to_srf(lines, srf):
 	ap.RepairGeometry_management(srf, "DELETE_NULL")
 
 def snap_points_to_lines(points, lines):
-	end_env = [lines, "END", "0.03 Meters"] # Snap points to the nearest line end node within 0.03m as priority over other vertices
+	#tolerance = "0.03 Meters"
+	tolerance = "1 Meters"
+	end_env = [lines, "END", tolerance] # Snap points to the nearest line end node within 0.03m as priority over other vertices
 	vertex_env = [lines, "VERTEX", "0.03 Meters"] # Snap points to the nearest line vertex within 0.03m
 	edge_env = [lines, "EDGE", "0.03 Meters"] # Snap remaining points to the nearest line edge within 0.03m
 	write("Snapping points to rank 1 line end nodes, rank 2 line vertices, and rank 3 line edges.")
@@ -861,44 +872,16 @@ def snap_points_to_lines(points, lines):
 	ap.RepairGeometry_management(points, "DELETE_NULL")
 
 def make_integrate_layers(name_list):
-	#name_list = ['FeaturePnt', 'FeatureCrv', 'FeatureSrf', 'feat_pnt', 'feat_crv', 'feat_srf']
-	# if name_list[0] not in featureclass:
-	# 	if ap.Exists(name_list[0]):
-	# 		pass
-	# 	else:
-	# 		ap.AddError("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[0]))
-	# 		writeresults("Integrate and Repair")
-	# if name_list[1] not in featureclass:
-	# 	if ap.Exists(name_list[1]):
-	# 		pass
-	# 	else:
-	# 		ap.AddError("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[1]))
-	# 		writeresults("Integrate and Repair")
-	# if name_list[2] not in featureclass:
-	# 	if ap.Exists(name_list[2]):
-	# 		pass
-	# 	else:
-	# 		ap.AddError("** {0} feature class not found\n  To run Integrate, copy an empty {0} feature class from a blank schema into this dataset and run the tool again. **".format(name_list[2]))
-	# 		writeresults("Integrate and Repair")
-
+	# name_list = ['FeaturePnt', 'FeatureCrv', 'FeatureSrf', 'feat_pnt', 'feat_crv', 'feat_srf']
 	if name_list[0] not in featureclass:
 		if existential_panic(name_list[0], "Integrate and Repair"):
-			#writeresults("Integrate and Repair")
 			return False
-		else:
-			pass
 	if name_list[1] not in featureclass:
 		if existential_panic(name_list[1], "Integrate and Repair"):
-			#writeresults("Integrate and Repair")
 			return False
-		else:
-			pass
 	if name_list[2] not in featureclass:
 		if existential_panic(name_list[2], "Integrate and Repair"):
-			#writeresults("Integrate and Repair")
 			return False
-		else:
-			pass
 
 	write("Making {0}, {1}, and {2} feature layers".format(name_list[0], name_list[1], name_list[2]))
 	if name_list[0] == 'UtilityInfrastructurePnt':
@@ -955,10 +938,10 @@ def integrate_hydro():
 				snap_points_to_lines(hydro_pnt, hydro_crv)
 			if not pnt_count and not srf_count and crv_count > 0:
 				write("Only curves present in data. Integrating them alone.")
-				ap.Integrate_management(hydro_crv, "0.02 Meters")
+				ap.Integrate_management(hydro_crv, "0.01 Meters")
 
 	repair_and_clean(hydro_list)
-	ap.AddWarning("{0} finished in {1}".format(tool_names.hydro, runtime(hydro_start)))
+	greentext("{0} finished in {1}".format(tool_names.hydro, runtime(hydro_start)))
 	return hfeat_count
 
 def integrate_trans():
@@ -992,10 +975,10 @@ def integrate_trans():
 			if pnt_count > 0 and crv_count > 0:
 				snap_points_to_lines(trans_pnt, trans_crv)
 			if pnt_count == 0 and srf_count == 0 and crv_count > 0:
-				ap.Integrate_management(trans_crv, "0.02 Meters")
+				ap.Integrate_management(trans_crv, "0.01 Meters")
 
 	repair_and_clean(trans_list)
-	ap.AddWarning("{0} finished in {1}".format(tool_names.trans, runtime(trans_start)))
+	greentext("{0} finished in {1}".format(tool_names.trans, runtime(trans_start)))
 	return tfeat_count
 
 def integrate_util():
@@ -1029,10 +1012,10 @@ def integrate_util():
 			if pnt_count > 0 and crv_count > 0:
 				snap_points_to_lines(util_pnt, util_crv)
 			if pnt_count == 0 and srf_count == 0 and crv_count > 0:
-				ap.Integrate_management(util_crv, "0.02 Meters")
+				ap.Integrate_management(util_crv, "0.01 Meters")
 
 	repair_and_clean(util_list)
-	ap.AddWarning("{0} finished in {1}".format(tool_names.util, runtime(util_start)))
+	greentext("{0} finished in {1}".format(tool_names.util, runtime(util_start)))
 	return ufeat_count
 
 def update_bridge_wid(defbridge, allbridge):
@@ -1113,14 +1096,14 @@ def update_bridge_wid(defbridge, allbridge):
 
 	# Error handling. If 0 Bridges selected, the script breaks
 	if not total_bridges:
-		ap.AddWarning("No Bridges or Tunnels found.")
+		greentext("No Bridges or Tunnels found.")
 		if defbridge: write("{0} finished in {1}".format(tool_names.defbridge, runtime(bridge_start)))
 		if allbridge: write("{0} finished in {1}".format(tool_names.allbridge, runtime(bridge_start)))
 		return total_bridges, updated_bridge_wids, updated_bridge_ctuus, remaining_default_bridges
 	# Error handling. If no Roads or Rails to select against, likely something will break
 	if not total_roads and not total_cart_tracks and not total_rails:
-		ap.AddWarning("{0} Bridges and Tunnels found.".format(total_bridges))
-		ap.AddWarning("** No underlying Roads, Cart Tracks, Railways, or Railway Sidetracks for Bridges and Tunnels. **\n** The Bridges and Tunnels are either not coincident or missing an underlying Transportation feature. **")
+		greentext("{0} Bridges and Tunnels found.".format(total_bridges))
+		greentext("** No underlying Roads, Cart Tracks, Railways, or Railway Sidetracks for Bridges and Tunnels. **\n** The Bridges and Tunnels are either not coincident or missing an underlying Transportation feature. **")
 		if defbridge: write("{0} finished in {1}".format(tool_names.defbridge, runtime(bridge_start)))
 		if allbridge: write("{0} finished in {1}".format(tool_names.allbridge, runtime(bridge_start)))
 		return total_bridges, updated_bridge_wids, updated_bridge_ctuus, remaining_default_bridges
@@ -1195,8 +1178,8 @@ def update_bridge_wid(defbridge, allbridge):
 	updated_bridge_wids = road_bridges_updated + cart_bridges_updated + rail_bridges_updated
 
 	if remaining_default_bridges > 0:
-		ap.AddWarning("** {0} Bridges or Tunnels remaining with default WID = -999999. **\n** The default Bridges and Tunnels are either not coincident or missing an underlying Transportation feature. **".format(remaining_default_bridges))
-	ap.AddWarning("{0} WID values and {1} CTUU values updated for Bridges and Tunnels in {2}".format(updated_bridge_wids, updated_bridge_ctuus, runtime(bridge_start)))
+		greentext("** {0} Bridges or Tunnels remaining with default WID = -999999. **\n** The default Bridges and Tunnels are either not coincident or missing an underlying Transportation feature. **".format(remaining_default_bridges))
+	greentext("{0} WID values and {1} CTUU values updated for Bridges and Tunnels in {2}".format(updated_bridge_wids, updated_bridge_ctuus, runtime(bridge_start)))
 
 	return total_bridges, updated_bridge_wids, updated_bridge_ctuus, remaining_default_bridges
 
@@ -1229,11 +1212,11 @@ def update_pylong_hgt(defpylong, allpylong):
 
 	# if util_pnt not in featureclass or util_crv not in featureclass:
 	# 	if ap.Exists(util_pnt) or ap.Exists(util_crv):
-	# 		ap.AddWarning("Either {0} or {1} has no features. Moving on.".format(util_pnt, util_crv))
+	# 		greentext("Either {0} or {1} has no features. Moving on.".format(util_pnt, util_crv))
 	# 	else:
-	# 		if defpylong: ap.AddError("\n*** Failed to run {0} ***".format(tool_names.defpylong))
-	# 		if allpylong: ap.AddError("\n*** Failed to run {0} ***".format(tool_names.pylong))
-	# 		ap.AddError("{0} or {1} feature class missing\n".format(util_pnt, util_crv))
+	# 		if defpylong: oops("\n*** Failed to run {0} ***".format(tool_names.defpylong))
+	# 		if allpylong: oops("\n*** Failed to run {0} ***".format(tool_names.pylong))
+	# 		oops("{0} or {1} feature class missing\n".format(util_pnt, util_crv))
 	# 	return total_pylons, updated_pylon_hgts, updated_pylon_ctuus, remaining_default_pylons
 
 	# Pull height, CTUU, and geometry fields
@@ -1275,13 +1258,13 @@ def update_pylong_hgt(defpylong, allpylong):
 
 	# Error handling. If 0 Pylons selected the script breaks
 	if not total_pylons_on_cables:
-		ap.AddWarning("No Pylons intersecting Cables found.")
+		greentext("No Pylons intersecting Cables found.")
 		if defpylong: write("{0} finished in {1}".format(tool_names.defpylong, runtime(pylong_start)))
 		if allpylong: write("{0} finished in {1}".format(tool_names.allpylong, runtime(pylong_start)))
 		return total_pylons, updated_pylon_hgts, updated_pylon_ctuus, remaining_default_pylons
 	# Error handling. If no Cables to select against, likely something will break
 	if not total_cables:
-		ap.AddWarning("No Cables with height values found.")
+		greentext("No Cables with height values found.")
 		if defpylong: write("{0} finished in {1}".format(tool_names.defpylong, runtime(pylong_start)))
 		if allpylong: write("{0} finished in {1}".format(tool_names.allpylong, runtime(pylong_start)))
 		return total_pylons, updated_pylon_hgts, updated_pylon_ctuus, remaining_default_pylons
@@ -1319,8 +1302,8 @@ def update_pylong_hgt(defpylong, allpylong):
 	select_by_att(utility_pnt_lyr, "CLEAR_SELECTION")
 
 	if remaining_default_pylons > 0:
-		ap.AddWarning("** {0} Pylons remaining with default HGT = -999999. **\n** The default Pylons are not snapped, missing a Cable, or the underlying Cable doesn't have a height.".format(remaining_default_pylons))
-	ap.AddWarning("{0} HGT values and {1} CTUU values updated for Pylons in {2}".format(updated_pylon_hgts, updated_pylon_ctuus, runtime(pylong_start)))
+		greentext("** {0} Pylons remaining with default HGT = -999999. **\n** The default Pylons are not snapped, missing a Cable, or the underlying Cable doesn't have a height.".format(remaining_default_pylons))
+	greentext("{0} HGT values and {1} CTUU values updated for Pylons in {2}".format(updated_pylon_hgts, updated_pylon_ctuus, runtime(pylong_start)))
 
 	return total_pylons, updated_pylon_hgts, updated_pylon_ctuus, remaining_default_pylons
 
@@ -1351,11 +1334,11 @@ def populate_woc(defdam, alldam):
 
 	# if hydro_srf not in featureclass or trans_crv not in featureclass:
 	# 	if ap.Exists(hydro_srf) or ap.Exists(trans_crv):
-	# 		ap.AddWarning("Either {0} or {1} has no features. Moving on.".format(hydro_srf, trans_crv))
+	# 		greentext("Either {0} or {1} has no features. Moving on.".format(hydro_srf, trans_crv))
 	# 	else:
-	# 		if defdam: ap.AddError("\n*** Failed to run {0} ***".format(tool_names.defdam))
-	# 		if alldam: ap.AddError("\n*** Failed to run {0} ***".format(tool_names.alldam))
-	# 		ap.AddError("{0} or {1} feature classes missing\n".format(hydro_srf, trans_crv))
+	# 		if defdam: oops("\n*** Failed to run {0} ***".format(tool_names.defdam))
+	# 		if alldam: oops("\n*** Failed to run {0} ***".format(tool_names.alldam))
+	# 		oops("{0} or {1} feature classes missing\n".format(hydro_srf, trans_crv))
 	# 	return total_dams, updated_dams, dams_without_trans
 
 	# Important values
@@ -1401,13 +1384,13 @@ def populate_woc(defdam, alldam):
 
 	# Error handling. If 0 Dams selected, the script breaks
 	if not total_dams:
-		ap.AddWarning("No Dams found.")
+		greentext("No Dams found.")
 		if defdam: write("{0} finished in {1}".format(tool_names.defdam, runtime(dam_start)))
 		if alldam: write("{0} finished in {1}".format(tool_names.alldam, runtime(dam_start)))
 		return total_dams, updated_dams, dams_without_trans
 	if not total_trans_on_dams:
-		ap.AddWarning("{0} Dams found.".format(total_dams))
-		ap.AddWarning("No underlying Roads, Cart Tracks, Railways, or Railway Sidetracks for Dams.\nThe Dams are either not coincident or missing an underlying Transportation feature.")
+		greentext("{0} Dams found.".format(total_dams))
+		greentext("No underlying Roads, Cart Tracks, Railways, or Railway Sidetracks for Dams.\nThe Dams are either not coincident or missing an underlying Transportation feature.")
 
 	write("{0} Dam surfaces found".format(total_dams))
 	write("{0} Trans curves found".format(total_trans))
@@ -1483,10 +1466,10 @@ def populate_woc(defdam, alldam):
 	updated_dams = total_car_intersects + total_train_intersects + total_updated_no_trans
 
 	if remaining_default_woc > 0:
-		ap.AddWarning("** {0} Dams remaining with default WOC. **\n** There may be geometry issues with these Dams. **".format(remaining_default_woc))
+		greentext("** {0} Dams remaining with default WOC. **\n** There may be geometry issues with these Dams. **".format(remaining_default_woc))
 	if remaining_default_trs > 0:
-		ap.AddWarning("** {0} Dams remaining with default or nonstandard TRS. **\n** These Dams may be attributed with an uncommon Transportation System. **".format(remaining_default_trs))
-	ap.AddWarning("\n{0} WOC and TRS values updated for Dam surfaces in {1}".format(updated_dams, runtime(dam_start)))
+		greentext("** {0} Dams remaining with default or nonstandard TRS. **\n** These Dams may be attributed with an uncommon Transportation System. **".format(remaining_default_trs))
+	greentext("\n{0} WOC and TRS values updated for Dam surfaces in {1}".format(updated_dams, runtime(dam_start)))
 
 	return total_dams, updated_dams, dams_without_trans
 
@@ -1521,12 +1504,12 @@ def buildings_in_buas():
 			return bua_count, total_2upscale, total_2descale
 
 	# if not ap.Exists(settlement_srf): # Task can't run if SettlementSrf fc is missing
-	# 	ap.AddError("\n*** Failed to run {0} ***".format(tool_names.building))
-	# 	ap.AddError("SettlementSrf feature class missing\n")
+	# 	oops("\n*** Failed to run {0} ***".format(tool_names.building))
+	# 	oops("SettlementSrf feature class missing\n")
 	# 	return bua_count, total_2upscale, total_2descale
 	# if not ap.Exists(structure_srf) and not ap.Exists(structure_pnt): # Task can't run if both StructureSrf and StructurePnt fcs are missing. Only one is fine.
-	# 	ap.AddError("\n*** Failed to run {0} ***".format(tool_names.building))
-	# 	ap.AddError("StructureSrf and StructurePnt feature classes missing\n")
+	# 	oops("\n*** Failed to run {0} ***".format(tool_names.building))
+	# 	oops("StructureSrf and StructurePnt feature classes missing\n")
 	# 	return bua_count, total_2upscale, total_2descale
 
 	# Intra-task variables
@@ -1553,7 +1536,7 @@ def buildings_in_buas():
 	bua_count = get_count("buas")
 
 	if not bua_count: # No BUAs to check against buildings. Wrap up task.
-		ap.AddWarning("\nNo BUAs found.")
+		greentext("\nNo BUAs found.")
 		write("{0} finished in {1}".format(tool_names.building, runtime(building_start)))
 		return bua_count, total_2upscale, total_2descale
 
@@ -1566,7 +1549,7 @@ def buildings_in_buas():
 	if ap.Exists(structure_srf): # Must check using Exists() in case both 'Skip Buildings' and 'Building in BUA Scaler' were checked
 		if get_count(structure_srf): # If it exists, count the features. If there are more than 0, then continue with the task
 			if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
-				ap.AddWarning("Disabling Editor Tracking for StructureSrf feature class.")
+				greentext("Disabling Editor Tracking for StructureSrf feature class.")
 				ap.DisableEditorTracking_management(structure_srf)
 
 			# Make layer of building surfaces < 50k, select the buildings within BUAs, and apply the important building query
@@ -1611,7 +1594,7 @@ def buildings_in_buas():
 	if ap.Exists(structure_pnt):
 		if get_count(structure_pnt): # If it exists, count the features. If there are more than 0, then continue with the task
 			if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
-				ap.AddWarning("Disabling Editor Tracking for StructurePnt feature class.")
+				greentext("Disabling Editor Tracking for StructurePnt feature class.")
 				ap.DisableEditorTracking_management(structure_pnt)
 
 			# Make layer of building points < 50k, select the buildings within BUAs, and apply the important building query
@@ -1666,7 +1649,7 @@ def buildings_in_buas():
 	write("{0} building surfaces scaled to 12.5k.".format(total_2descale_s))
 	write("{0} building points scaled to 50k.".format(total_2upscale_p))
 	write("{0} building points scaled to 12.5k.".format(total_2descale_p))
-	ap.AddWarning("\n{0} Buildings scaled up and {1} Buildings scaled down {2}".format(total_2upscale, total_2descale, runtime(building_start)))
+	greentext("\n{0} Buildings scaled up and {1} Buildings scaled down {2}".format(total_2upscale, total_2descale, runtime(building_start)))
 
 	return bua_count, total_2upscale, total_2descale
 
@@ -1677,11 +1660,11 @@ def caci_swap():
 
 	caci_schema, scale_name = snowflake_protocol() # Check for a CACI schema. Special actions are required for their custom nonsense.
 	if not caci_schema:
-		ap.AddError("CACI Swap Scale and CTUU was checked, but the provided TDS does not match CACI schema containing the 'Scale' field.\nCannot run CACI Swap Scale and CTUU")
+		oops("CACI Swap Scale and CTUU was checked, but the provided TDS does not match CACI schema containing the 'Scale' field.\nCannot run CACI Swap Scale and CTUU")
 		bool_dict[tool_names.swap] = False
 		return
 	else:
-		ap.AddWarning("CACI schema containing '{0}'' field identified".format(scale_name))
+		greentext("CACI schema containing '{0}'' field identified".format(scale_name))
 
 	featureclass_caci = featureclass
 	if bool_dict[tool_names.vogon]:
@@ -1704,7 +1687,7 @@ def caci_swap():
 	none_dom = False
 	for fc in featureclass_caci:
 		if 'StructureSrf' in featureclass_caci or 'StructurePnt' in featureclass_caci:
-			if not get_count(fc):
+			if not fc_counts[fc]:
 				empty_fc.append(str(fc))
 				continue
 		# field_check = ap.ListFields(fc)
@@ -1808,7 +1791,7 @@ def caci_swap():
 		ap.DeleteField_management(fc, "swap")
 		ap.DeleteField_management(fc, "progress")
 
-	ap.AddWarning("\n{0} finished in {1}".format(tool_names.swap, runtime(swap_start)))
+	greentext("\n{0} finished in {1}".format(tool_names.swap, runtime(swap_start)))
 	return
 
 
@@ -1952,7 +1935,7 @@ write("\n")
 
 #----------------------------------------------------------------------
 # refresh_extent() # Refreshes the extent polygon for the whole dataset
-featureclass, featurerecess = create_fc_list() # Create the feature class list with the requested fcs
+fc_counts, featureclass, featurerecess = create_fc_list() # Create the feature class list with the requested fcs
 if bool_dict[tool_names.disable]:
 	disable_editor_tracking(gdb_name) # Disables Editor Tracking for all feature classes
 mem_grid = grid_chungus() # Create the extent polygon grid for partitioning the data
@@ -2149,7 +2132,7 @@ if bool_dict[tool_names.explode]:
 				for row in scursor: # For each feature in the fc
 					shape = row[1] # Get SHAPE@ token to extract properties
 					if shape is None: # Checks for NULL geometries
-						ap.AddWarning(" *** Found a feature with NULL geometry. Be sure Repair Geometry has been run. *** ")
+						greentext(" *** Found a feature with NULL geometry. Be sure Repair Geometry has been run. *** ")
 						continue
 					elif shape.isMultipart is True: # Does the feature have the isMultipart flag
 						shape_type = str(shape.type) # Gets the geometry type of the feature
@@ -2190,8 +2173,8 @@ if bool_dict[tool_names.explode]:
 		for fc in fc_multi_list:
 			count = len(fc_multi[fc])
 			total_multi += count
-			ap.AddWarning("{0} multipart features found in {1}".format(count, fc))
-			#ap.AddWarning("  OIDs - {0}".format(fc_multi[fc]))
+			greentext("{0} multipart features found in {1}".format(count, fc))
+			#greentext("  OIDs - {0}".format(fc_multi[fc]))
 		write(" ")
 
 	##### Isolate, Explode, Replace #####
@@ -2204,7 +2187,7 @@ if bool_dict[tool_names.explode]:
 			if fc_parts[-1] in ad.fc_fields:  #dict_import
 				fcr = fc_parts[-1]
 			else:
-				ap.AddError("** Error: Unknown Feature Class name found. If running on SDE, the aliasing may have changed. Contact SDE Admin. **")
+				oops("** Error: Unknown Feature Class name found. If running on SDE, the aliasing may have changed. Contact SDE Admin. **")
 
 			# Variables
 			oid_list = fc_multi[fc]
@@ -2239,7 +2222,7 @@ if bool_dict[tool_names.explode]:
 			write("{0} multipart progenitor cores collapsing".format(fcr))
 			multistart = dt.now()
 			ap.MultipartToSinglepart_management(in_class, out_class) # New feature class output of just the converted single parts
-			ap.AddWarning("Hypernova burst detected after {0}".format(runtime(multistart)))
+			greentext("Hypernova burst detected after {0}".format(runtime(multistart)))
 
 			write("Removing original multipart features")
 			# Deletes features in fc that have OIDs flagged as multiparts
@@ -2281,7 +2264,7 @@ if bool_dict[tool_names.explode]:
 	except:
 		write("No in_class or out_class created. Or processing layers have already been cleaned up. Continuing...")
 		pass
-	ap.AddWarning("{0} features exploded in {1}".format(total_multi, runtime(explode_start)))
+	greentext("{0} features exploded in {1}".format(total_multi, runtime(explode_start)))
 
 
 #----------------------------------------------------------------------
@@ -2320,7 +2303,7 @@ if bool_dict[tool_names.dups]:
 	os.remove("{0}.cpg".format(path))
 	os.remove("{0}.IN_FID.atx".format(path))
 	ap.RefreshCatalog(out_table)
-	ap.AddWarning("{0} duplicates removed in {1}".format(dup_count, runtime(dups_start)))
+	greentext("{0} duplicates removed in {1}".format(dup_count, runtime(dups_start)))
 
 	# ##### check Shape vs shape@ and add xy-tolerance to find and delete identical
 	# #search cursor with shape@ and oid@ check each shape against the others. if they match, store the oid in list.
@@ -2595,8 +2578,8 @@ while bool_dict[tool_names.fcount]:
 			if feat_dict[fKey][1] == 0:
 				txt_file.write("{0}\n".format(fKey))
 
-	ap.AddWarning("Feature Count Report created. File located in the same folder as the database:\n{0}\n".format(results))
-	ap.AddWarning("{0} finished in {1}".format(tool_names.fcount, runtime(fcount_start)))
+	greentext("Feature Count Report created. File located in the same folder as the database:\n{0}\n".format(results))
+	greentext("{0} finished in {1}".format(tool_names.fcount, runtime(fcount_start)))
 	break
 
 
@@ -2671,8 +2654,8 @@ while bool_dict[tool_names.vsource]:
 							line = [''.ljust(25),vKey.center(14),sKey.ljust(65),dKey.center(16),str(feat_dict[fKey][vKey][sKey][dKey]).rjust(8)+'\n']
 							txt_file.writelines(line)
 
-	ap.AddWarning("Source Analysis Reports created. Files located in the same folder as the database:\n{0}\n{1}\n".format(results_csv, results_txt))
-	ap.AddWarning("{0} finished in {1}".format(tool_names.vsource, runtime(vsource_start)))
+	greentext("Source Analysis Reports created. Files located in the same folder as the database:\n{0}\n{1}\n".format(results_csv, results_txt))
+	greentext("{0} finished in {1}".format(tool_names.vsource, runtime(vsource_start)))
 	break
 
 
@@ -2763,10 +2746,10 @@ if bool_dict[tool_names.hydro] or bool_dict[tool_names.trans] or bool_dict[tool_
 if bool_dict[tool_names.defbridge]:
 	write(u"    |     - Default Bridge/Tunnel WID Updater    {0}|".format(exs))
 	if not ap.Exists('TransportationGroundCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not def_total_bridges:
-		ap.AddWarning(u"    |          No Bridges or Tunnels found       {0}|".format(exs))
+		greentext(u"    |          No Bridges or Tunnels found       {0}|".format(exs))
 	else:
 		write(u"    |          {0} WID values updated        {1}{2}|".format(def_updated_bridge_wids, format_count(def_updated_bridge_wids), exs))
 		write(u"    |          {0} CTUU values updated       {1}{2}|".format(def_updated_bridge_ctuus, format_count(def_updated_bridge_ctuus), exs))
@@ -2775,10 +2758,10 @@ if bool_dict[tool_names.defbridge]:
 if bool_dict[tool_names.defpylong]:
 	write(u"    |     - Default Pylon HGT Updater            {0}|".format(exs))
 	if not ap.Exists('UtilityInfrastructurePnt') or not ap.Exists('UtilityInfrastructureCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not def_total_pylons:
-		ap.AddWarning(u"    |          No default pylons found           {0}|".format(exs))
+		greentext(u"    |          No default pylons found           {0}|".format(exs))
 	else:
 		write(u"    |          {0} HGT values updated        {1}{2}|".format(def_updated_pylon_hgts, format_count(def_updated_pylon_hgts), exs))
 		write(u"    |          {0} CTUU values updated       {1}{2}|".format(def_updated_pylon_ctuus, format_count(def_updated_pylon_ctuus), exs))
@@ -2787,10 +2770,10 @@ if bool_dict[tool_names.defpylong]:
 if bool_dict[tool_names.defdam]:
 	write(u"    |     - Default Dam WOC Updater              {0}|".format(exs))
 	if not ap.Exists('HydrographySrf') or not ap.Exists('TransportationGroundCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not def_total_dams:
-		ap.AddWarning(u"    |          No Dam surfaces found             {0}|".format(exs))
+		greentext(u"    |          No Dam surfaces found             {0}|".format(exs))
 	else:
 		write(u"    |          {0} Dams' WOC or TRS updated  {1}{2}|".format(def_updated_dams, format_count(def_updated_dams), exs))
 		write(u"    |          {0} Dams without Trans curves {1}{2}|".format(def_dams_without_trans, format_count(def_dams_without_trans), exs))
@@ -2805,10 +2788,10 @@ if bool_dict[tool_names.dups]:
 if bool_dict[tool_names.allbridge]:
 	write(u"    |     - All Bridge/Tunnel WID Updater        {0}|".format(exs))
 	if not ap.Exists('TransportationGroundCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not all_total_bridges:
-		ap.AddWarning(u"    |          No Bridges or Tunnels found       {0}|".format(exs))
+		greentext(u"    |          No Bridges or Tunnels found       {0}|".format(exs))
 	else:
 		write(u"    |          {0} WID values updated        {1}{2}|".format(all_updated_bridge_wids, format_count(all_updated_bridge_wids), exs))
 		write(u"    |          {0} CTUU values updated       {1}{2}|".format(all_updated_bridge_ctuus, format_count(all_updated_bridge_ctuus), exs))
@@ -2817,10 +2800,10 @@ if bool_dict[tool_names.allbridge]:
 if bool_dict[tool_names.allpylong]:
 	write(u"    |     - All Pylon HGT Updater                {0}|".format(exs))
 	if not ap.Exists('UtilityInfrastructurePnt') or not ap.Exists('UtilityInfrastructureCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not all_total_pylons:
-		ap.AddWarning(u"    |          No default pylons found           {0}|".format(exs))
+		greentext(u"    |          No default pylons found           {0}|".format(exs))
 	else:
 		write(u"    |          {0} HGT values updated        {1}{2}|".format(all_updated_pylon_hgts, format_count(all_updated_pylon_hgts), exs))
 		write(u"    |          {0} CTUU values updated       {1}{2}|".format(all_updated_pylon_ctuus, format_count(all_updated_pylon_ctuus), exs))
@@ -2829,10 +2812,10 @@ if bool_dict[tool_names.allpylong]:
 if bool_dict[tool_names.alldam]:
 	write(u"    |     - All Dam WOC Updater                  {0}|".format(exs))
 	if not ap.Exists('HydrographySrf') or not ap.Exists('TransportationGroundCrv'):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not all_total_dams:
-		ap.AddWarning(u"    |          No Dam surfaces found             {0}|".format(exs))
+		greentext(u"    |          No Dam surfaces found             {0}|".format(exs))
 	else:
 		write(u"    |          {0} Dams' WOC or TRS updated  {1}{2}|".format(all_updated_dams, format_count(all_updated_dams), exs))
 		write(u"    |          {0} Dams without Trans curves {1}{2}|".format(all_dams_without_trans, format_count(all_dams_without_trans), exs))
@@ -2840,10 +2823,10 @@ if bool_dict[tool_names.alldam]:
 if bool_dict[tool_names.building]:
 	write(u"    |     - Building in BUA Scaler               {0}|".format(exs))
 	if not ap.Exists('SettlementSrf') or (not ap.Exists('StructureSrf') and not ap.Exists('StructurePnt')):
-		ap.AddError(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
-		ap.AddError(u"    |       !!! Please check the output !!!      {0}|".format(exs))
+		oops(u"    |       !!! The tool did not finish !!!      {0}|".format(exs))
+		oops(u"    |       !!! Please check the output !!!      {0}|".format(exs))
 	elif not bua_count:
-		ap.AddWarning(u"    |          No BUAs found                     {0}|".format(exs))
+		greentext(u"    |          No BUAs found                     {0}|".format(exs))
 	else:
 		write(u"    |          {0} Buildings upscaled        {1}{2}|".format(total_2upscale, format_count(total_2upscale), exs))
 		write(u"    |          {0} Buildings descaled        {1}{2}|".format(total_2descale, format_count(total_2descale), exs))
@@ -2868,8 +2851,8 @@ if bool_dict[tool_names.vsource]:
 # Easter Egg
 if not bool_dict[tool_names.repair] and not bool_dict[tool_names.fcode] and not bool_dict[tool_names.defaults] and not bool_dict[tool_names.metrics] and not bool_dict[tool_names.ufi] and not bool_dict[tool_names.hydro] and not bool_dict[tool_names.trans] and not bool_dict[tool_names.util] and not bool_dict[tool_names.defbridge] and not bool_dict[tool_names.defpylong] and not bool_dict[tool_names.defdam] and not bool_dict[tool_names.explode] and not bool_dict[tool_names.dups] and not bool_dict[tool_names.allbridge] and not bool_dict[tool_names.allpylong] and not bool_dict[tool_names.alldam] and not bool_dict[tool_names.building] and not bool_dict[tool_names.fcount] and not bool_dict[tool_names.vsource]:
 	write(u"    |   {0}   {1}|".format(sspaces, exs))
-	ap.AddWarning(u"    |          {0}, click a check box        {1}{2}|".format(username, format_count(username), exs))
-	ap.AddWarning(u"    |          and stop being cheeky.            {0}|".format(exs))
+	greentext(u"    |          {0}, click a check box        {1}{2}|".format(username, format_count(username), exs))
+	greentext(u"    |          and stop being cheeky.            {0}|".format(exs))
 
 #-----------------------------------
 write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))

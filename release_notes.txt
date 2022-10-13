@@ -1,0 +1,162 @@
+For a full breakdown of the 120 recent updates made to the Finishing Tool Suite, please see the changelog.txt in the Finishing Tool Suite folder.
+
+Finishing Tool Suite Official Release
+
+The Finishing Tool Suite is now ready for a general release to Team Leads, QC, and Managers.
+
+For those unaware, the Finishing Tool Suite is a toolbox containing 19 tools used for Finishing and general geodatabase processing. It is designed to automate the preparation, conditioning, repair, geoprocessing, and analysis workflows that are used regularly in the Finishing process. This was done out of necessity due to the rapid increase in size and complexity of the data and requirements since the start of Project 9. The tasks performed by these tools were originally done manually and had to be done for each individual scale before GAIT, AO, or other client inspections could be run.
+
+Up to this point, the Finishing Tool Suite has not been widely distributed due to the dynamic nature of the client requirements. Updates to the functionality of the tools were made fairly often, and it was not feasible to release new versions of the tool every few weeks. This would have just caused confusion. There has been some discussion of Team Leads and Managers performing interim GAIT and AO runs on the databases to lessen some of the bottlenecked pressure on Finishing. Much of the current Finishing process has not been fully documented because of time constraints and a dynamically evolving workflow. The purpose of this wider release of the Finishing Tool Suite is to work towards this. In short, databases need to be pulled locally, the data split by AOI, scale, and/or activity requirement, and the default Finishing Tools run on each of the split datasets before GAIT or AO can be run. The tools drastically reduce the amount of GAIT and AO errors that would occur in an unprocessed geodatabase. The changes made by the Finishing Tool Suite can reduce GAIT errors up to 40-50% and AO errors up to 80%.
+
+Descriptions and explanations for all of the tool options can be found in the Finishing Tool Suite v9.8.7 Documentation PDF. A more detailed breakdown of what the Finishing Tool Suite actually does can be found in the Manual Finishing Preparation and Repair PDF. ** This is NOT a step by step guide for Finishing. It is for documentation purposes and to serve as a sense of scale for what the tools do. **
+
+IMPORTANT NOTES!!
+ - When you open any toolbox tool, be sure to turn on the Tool Help panel on the right. A description and explanation of the tool options is usually available. For all of the toolboxes that have been released by the Finishing Team, this is the case.
+ - When using the Finishing Tool Suite or any other toolbox tool, you MUST expand the <<<Details option
+ - IF YOU FIND A BUG OR THE TOOL FAILS, DO NOT CLOSE THE WINDOW. Contact Nat Cagle or John Jackson. Send one of us a screenshot of the error and copy/paste the ENTIRE text output of the tool in a message as well. Otherwise, we will not be able to help. For most errors, a large red skull will appear. There has occasionally been an issue with something going wrong and no one noticing. If you see this, read through the error report to see if it offers any potential solutions to what went wrong. If there is a failure and the large red skull does not appear, then you have likely discovered a bug. Please send this to one of us as soon as possible so that it can be fixed for the next update.
+
+One final note:
+** DO NOT TRY TO RUN THIS TOOL IN SDE!! **
+
+
+Version 9.8.7
+2022-10-11
+	- Added Partition Cores option for choosing how to partition large dataset to allow for processing with limited computer resources.
+	- Confirmed that the Calculate Default Values tool does not, in fact, populate NULL Version fields. That field is skipped in default value processing.
+	- Updated tool validation script.
+	- Updated feature checks for feature specific tools. Allows for tasks to continue after encountering a feature class that is not present in the dataset or does not contain any of the necessary features.
+	- Added Tool Help descriptions for all Finishing Tool Suite parameters and tool options.
+	- Added logo.
+	- Created tool documentation.
+	- Created Manual Finishing Preparation and Repair documentation of the steps required to manually perform the same tasks as the Finishing Tool Suite.
+	- Rewrote Update UFI Values logic to handle godzilla databases. Overall speed of tool has increased by 192%.
+	- Restructured creation of the feature class list for processing to preemptively store feature counts and reduce multiple redundant duplicate redundancies.
+	- Updated text formatting for error handling and important task details/results.
+
+
+Version 9.8.5
+2022-08-24
+	- Reformatted Tool Dialogue layout to have one category for Finishing Tools and one category for Preprocessing Tools.
+	- CACI Swap Scale and CTUU has been refactored into a function.
+	- Updated function aliases in code as well as replaced redundant code with recently made functions.
+	- Simplified runtime function to only have start variable and automatically get finish at time of execution.
+	- Updated parameters in all runtime functions.
+	- Updated important FFN list for Project 10 requirements. Uses a combination of Hexagon and Maxar requirements. Makes best assumptions based on vague guidance.
+	- Refactored and included Dam WOC Updater as a function.
+		- Split tool into Default Dam WOC Updater and All Dam WOC Updater. 'Default' isolates Dams with default WOC values for processing to save time. 'All' checks all features for any incorrect or unpopulated WOC, not just default WOC.
+		- Updates Dam TRS based on its dominant spatial relationship to any intersecting Trans features or lack thereof.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
+	- Added Raven Queen to royal decree and Secret Finishing Version parameter.
+	- Removed CACI Swap Scale and CTUU and associated checks. Functions are still present, but disabled.
+
+2022-08-04
+	- Bridge/Tunnel WID Updater, Pylon HGT Updater, and Building in BUA Scaler have been refactored into functions.
+	- Updated function aliases in code as well as replaced redundant code with recently made functions.
+	- Updated tool names.
+	- Updated outro summary phrasing, formatting, and statistics.
+	- Updated create_fc_list function logic for detecting metadata and resource surfaces, and updated how it sorts and filters feature classes.
+	- Fixed grammar for singular hour and minute outputs in runtime function.
+	- If CACI Swap Scale and CTUU is checked but the GDB is not a caci schema, the CACI Swap tool parameter is set to FALSE to skip it entirely.
+	- Added the runtime function output to the fishnet construction (grid_chungus) function.
+
+	- Hypernova Burst Multipart Features
+		- Updated calculation of exploded feature counts.
+
+	- Database Feature Report
+		- Added Utility feature count.
+
+	- Bridge/Tunnel WID Updater
+		- Split tool into Default Bridge/Tunnel WID Updater and All Bridge/Tunnel WID Updater. 'Default' isolates Bridges/Tunnels with default WID values for processing to save time. 'All' checks all features for any mismatched WID, not just default WID.
+		- Bridge/Tunnel WID Updater can now check for Bridges/Tunnels with WID <= Trans width and updates them based on the underlying Trans feature.
+		- Now with added cart tracks! Yum!
+		- Updates mismatched CTUU values so the Bridge/Tunnel feature matches its underlying Trans feature.
+		- Updated Bridge/Tunnel-Trans shared geometry method.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
+
+	- Pylon HGT Updater
+		- Split tool into Default Pylon HGT Updater and All Pylon HGT Updater. 'Default' isolates Pylons with default HGT values for processing to save time. 'All' checks all Pylons for any mismatched HGT, not just default HGT.
+		- Pylon HGT Updater can now check Pylons against intersecting Cables for mismatched HGT values and updates the Pylon HGT to match the Cable HGT.
+		- Updates mismatched CTUU values so the Pylon feature matches its intersecting Cable feature.
+		- Rewrote tool output statistics.
+		- Updated feature comparison criteria.
+
+
+Version 9.8
+2022-07-14
+    - Added option to specify what scale to run the tools on.
+        - This applies to the following tools:
+	        - Populate F_Codes
+	        - Calculate Default Values
+	        - Calculate Metrics
+	        - Update UFI Values
+	        - Integrate Hydrography Features
+	        - Integrate Transportation Features
+	        - Integrate Utility Features
+			- Default Bridge/Tunnel WID Updater
+			- Default Pylon HGT Updater
+			- Default Dam WOC Updater
+			- Hypernova Burst Multipart Features
+	        - All Bridge/Tunnel WID Updater
+	        - All Pylon HGT Updater
+			- All Dam WOC Updater
+	        - Building in BUA Scaler
+    - Added option to run tools on only 25k_LOC feature classes.
+    - Switched the order of Delete Identical Features and Hypernova Burst Multipart so that any overlapping or kickback multipart features are exploded first and then checked for duplicates and removed.
+    - Limited Calculate Metrics to only look at ARA for Polygons and LZN for Polylines. (This was not standard for the Defense Mapping tool).
+    - Removed layered integration and overhauled the logic behind Integration steps.
+        - Refactored Integration and Repair steps as modular functions.
+        - Integrate Hydrography Features includes points (VanishingPoints, NaturalPools, etc.).
+        - Integrate Transportation Features includes points (Ford, Culvert, etc.).
+        - Work backwards through the geometry hierarchy to minimize feature shift or disjoint. Lines->Surfaces then Points->Lines.
+        - Incorporated incremental snapping with 0.03m tolerance.
+            - Snap lines to the nearest surface vertex within 0.03m.
+	        - Snap remaining lines to the nearest surface edge within 0.03m.
+	        - Snap points to the nearest line end node within 0.03m as priority over other vertices.
+	        - Snap remaining points to the nearest line vertex within 0.03m.
+	        - Snap remaining points to the nearest line edge within 0.03m.
+	    - Integrate lines->surfaces then points->lines with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
+	    - This should help with these GAIT errors. Although the GAIT tolerance is 0.1m, so the snap tolerance may need to be modified for further accuracy.
+	        - Line-Line Undershoot/Overshoot
+	        - Line-Area Perimeter Undershoot
+	        - Point-Line Undershoot/Overshoot
+	        - Potentially others
+    - Buildings in BUA Scaler has been completely refactored using more efficient logic.
+        - Descales buildings within BUAs that don't have important FFNs (client dependent), have a height < 46m, and aren't navigation landmarks (LMC=True).
+	    - Scales in buildings within BUAs that do have important FFNs (client dependent), have a height >= 46m, or are navigation landmarks (LMC=True).
+	- Cleaned up tool outputs and format.
+
+Backend Updates (for nerds):
+    - Updated and organized module imports.
+    - Improved memory management to help with increasingly large datasets being processed on potatoes.
+    - Implemented new multi-value list parameters in collapsible categories to fix checkbox lag bug.
+        - New parameter set-up now creates list of chosen tool names rather than 20 individual booleans.
+	    - The tool selections are stored as strings in a namedtuple collection using simplified alias.
+	        - tool_names.repair = "Repair All NULL Geometries"
+	    - An OrderedDictionary collection uses the tool_names namedtuple as a skeleton and uses a generator function to populate the booleans.
+	        - bool_dict[tool_names.repair] = True
+    - Added a TDS error check for broken Catalog references. Make sure the file path points to the correct database. Dragging the TDS from the Catalog window to the tool occasionally references a filepath that no longer exists since ArcMap is to lazy to update it's object linkages regularly. Renaming a copied or newly created GDB can cause this. A lingering LOCK file still references the pre-change version, and the only way to update it is to manually input the correct path in the tool or restart ArcMap.
+    - Added checks for if a feature class exists by checking it against the featureclass list, output that information to the user and skip sections of code accordingly.
+    - Added a function to recalculate feature class extents. This repairs discrepancies in data extent boundaries after spatial edits in the SDE.
+    - Added a function to construct the fishnet grid for partitioning large datasets into chunks using the Extent environment variable. This is now feature class independent. It is the first step in fully partitioning entire datasets for massive geospatial processing on limited computer resources.
+    - Fixed comma tuple bug in Calculate Metrics.
+    - Changed the output for Update UFI Values to more accurately show which one is actively being worked on. User reading comprehension leaves something to be desired.
+    - Removed use of the Defense Mapping extension in Hypernova Burst Multipart Features when calculating new default values.
+    - CACI Swap scale_name variable was missing a definition after the last update. Added a second return value from the snowflake_protocol function for whatever CACI's unique Scale field name happens to be for any given schema.
+    - Repair All NULL Geometries, Populate F_Codes, Calculate Default Values, Calculate Metrics, Update UFI Values, Integrate Hydrography Features, Integrate Transportation Features, and Integrate Utility Features have been refactored into functions.
+	- Updated function aliases in code as well as replaced redundant code with recently made functions.
+	- The create_fc_list function now runs get_count function for each feature class in the dataset at the start and constructs the list with only feature classes that have records.
+
+
+Version 9.7
+2022-04-27
+	- Rewrote UFI check for duplicate and NULL values specifically.
+	- Added 'Skip Buildings' option for data with too many buildings (does not apply to Feature Count Report).
+	- Sorted tools into categories.
+	- Added Tunnels to Default Bridge/Tunnel WID Updater.
+	- CACI Swap Scale and CTUU populates the 'SAX_RX9' field with 'Scale Swapped' the first time the tool is run. It erases the field when the Scale field is swapped back. This only goes back and forth and is dependent on this version of the tool being run when we get the database from CACI.
+	- Added an updated Database Feature Report that outputs in alphabetical order, sorts any empty feature classes, and added more general totals such as total Trans, Hydro, Buildings, and Landcover.
+	- Added an updated Source Analysis Report that outputs in alphabetical order and creates a csv and txt file of the SRT data source, collection dates, and total counts.
+	- Added option to Disable Editor Tracking (default true).
+	- More detailed error handling for geoprocessing failures. Now with noticeable skull to catch users' attention.
