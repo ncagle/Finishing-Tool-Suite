@@ -21,7 +21,16 @@ v9.8.7
   - Restructured creation of the feature class list for processing to preemptively store feature 
     counts and reduce multiple redundant duplicate redundancies.
   - Updated text formatting for error handling and important task details/results.
-
+  - Rewrote Calculate Metrics to not use Defense Mapping extension. Using direct, sequential 
+    geometry calculation to speed up processing. The geometries have their shape preserved 
+    assuming a geodesic geographic coordinate system. The area and length are calculated on the 
+    surface of the Earth ellipsoid.
+  - Completely removed the need for the Defense Mapping Extension in any of the current tools. 
+    Checking out/in this extension caused issues on some computers. The cause could never be 
+    nailed down, so the use of the extension has been slowly phased out. In addition, this makes 
+    the tools more accessible to those without that specific ArcMap extension and avoids issues 
+    with extension versions and updates in the future.
+  - Added default progressor with labels for end-users who don't read.
 
 v9.8.5
 2022-08-24
@@ -121,12 +130,14 @@ v9.8
     - Integrate Transportation Features includes points (Ford, Culvert, etc.).
     - Work backwards through the geometry hierarchy to minimize feature shift or disjoint. 
       Lines->Surfaces then Points->Lines.
-    - Incorporated incremental snapping with 0.03m tolerance.
-      - Snap lines to the nearest surface vertex within 0.03m.
-      - Snap remaining lines to the nearest surface edge within 0.03m.
-      - Snap points to the nearest line end node within 0.03m as priority over other vertices.
-      - Snap remaining points to the nearest line vertex within 0.03m.
-      - Snap remaining points to the nearest line edge within 0.03m.
+    - Incorporated incremental snapping with 0.05m tolerance.
+        - Snap lines to the nearest surface vertex within 0.05m.
+        - Snap remaining lines to the nearest surface edge within 0.05m.
+        - Integrate lines->surfaces with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
+        - Snap points to the nearest line end node within 0.05m as priority over other vertices.
+        - Snap remaining points to the nearest line vertex within 0.05m.
+        - Snap remaining points to the nearest line edge within 0.05m.
+        - Integrate points->lines with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
     - Integrate lines->surfaces then points->lines with default domain tolerance (ESRI 
       recommended) to create intersection vertices without morphing the features.
     - This should help with these GAIT errors. Although the GAIT tolerance is 0.1m, so the snap 

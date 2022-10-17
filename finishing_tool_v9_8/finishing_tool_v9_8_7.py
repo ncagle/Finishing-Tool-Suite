@@ -175,13 +175,14 @@ Version 9.8
         - Integrate Hydrography Features includes points (VanishingPoints, NaturalPools, etc.).
         - Integrate Transportation Features includes points (Ford, Culvert, etc.).
         - Work backwards through the geometry hierarchy to minimize feature shift or disjoint. Lines->Surfaces then Points->Lines.
-        - Incorporated incremental snapping with 0.03m tolerance.
-            - Snap lines to the nearest surface vertex within 0.03m.
-	        - Snap remaining lines to the nearest surface edge within 0.03m.
-	        - Snap points to the nearest line end node within 0.03m as priority over other vertices.
-	        - Snap remaining points to the nearest line vertex within 0.03m.
-	        - Snap remaining points to the nearest line edge within 0.03m.
-	    - Integrate lines->surfaces then points->lines with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
+        - Incorporated incremental snapping with 0.05m tolerance.
+            - Snap lines to the nearest surface vertex within 0.05m.
+	        - Snap remaining lines to the nearest surface edge within 0.05m.
+			- Integrate lines->surfaces with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
+	        - Snap points to the nearest line end node within 0.05m as priority over other vertices.
+	        - Snap remaining points to the nearest line vertex within 0.05m.
+	        - Snap remaining points to the nearest line edge within 0.05m.
+	    	- Integrate points->lines with default domain tolerance (ESRI recommended) to create intersection vertices without morphing the features.
 	    - This should help with these GAIT errors. Although the GAIT tolerance is 0.1m, so the snap tolerance may need to be modified for further accuracy.
 	        - Line-Line Undershoot/Overshoot
 	        - Line-Area Perimeter Undershoot
@@ -276,10 +277,12 @@ Version 9.8.7
 	- Rewrote Update UFI Values logic to handle godzilla databases. Overall speed of tool has increased by 192%.
 	- Restructured creation of the feature class list for processing to preemptively store feature counts and reduce multiple redundant duplicate redundancies.
 	- Updated text formatting for error handling and important task details/results.
+	- Rewrote Calculate Metrics to not use Defense Mapping extension. Using direct, sequential geometry calculation to speed up processing. The geometries have their shape preserved assuming a geodesic geographic coordinate system. The area and length are calculated on the surface of the Earth ellipsoid.
+	- Completely removed the need for the Defense Mapping Extension in any of the current tools. Checking out/in this extension caused issues on some computers. The cause could never be nailed down, so the use of the extension has been slowly phased out. In addition, this makes the tools more accessible to those without that specific ArcMap extension and avoids issues with extension versions and updates in the future.
+	- Added default progressor with labels for end-users who don't read.
 
-## Increased vertex tolerance for feature specific tools to match GAIT tolerance and massively reduce GAIT errors without creating additional tangential GAIT errors.
 
-v9.7-v9.8.7: 120 updates
+v9.7-v9.8.7: 123 updates
 
 
 
@@ -499,6 +502,41 @@ def runtime(start): # Time a process or code block
 		time_elapsed = 0
 	return time_elapsed
 
+def progress(tool_name, fc, option): # Looping Loading Progress Bar
+	if option == 'start':
+		#progress(tool_name, '', 'start')
+		ap.SetProgressor("default", "Starting {0}".format(tool_name))
+		time.sleep(0.6)
+	elif option == 'next':
+		#for oo in loop:
+		#	progress(tool_name, fc, 'next')
+		#	value = srow[0] # Tool logic here
+		ap.SetProgressorLabel("Running {0} on {1}...".format(tool_name, fc))
+	elif option == 'stop':
+		#progress(tool_name, '', 'stop')
+		ap.SetProgressorLabel("Completed {0}".format(tool_name))
+		ap.ResetProgressor()
+
+def newprogress(tool_name, fc, option, pos): # Step Progressor Percentage Progress Bar
+	if option == 'start':
+		#increment = progress(fc, 'start', 0)
+		p = int(math.log10(fc_counts[fc]))
+		if not p: p = 1
+		increment = int(math.pow(10, p - 1))
+		ap.SetProgressor("step", "Running {0} on {1}".format(tool_name, fc), 0, fc_counts[fc], increment)
+		return increment
+	elif option == 'next':
+		# with ap.da.SearchCursor(fc, ['field']) as scursor:
+		# 	for pos, srow in enumerate(scursor, 0):
+		# 		if (pos % increment) == 0:
+		# 			progress(fc, 'next', pos)
+		# 		value = srow[0] # Tool logic here
+		ap.SetProgressorPosition(pos)
+	elif option == 'stop':
+		#progress(fc, 'stop', 0)
+		ap.SetProgressorPosition(fc_counts[fc])
+		ap.ResetProgressor()
+
 #-----------------------------------
 def make_field_list(dsc): # Construct a list of proper feature class fields
 	# Sanitizes Geometry fields to work on File Geodatabases or SDE Connections
@@ -683,23 +721,22 @@ def disable_editor_tracking(gdb_name): # Automatically disables editor tracking 
 		write("Editor Tracking has already been disabled.")
 	write("Time to disable Editor Tracking: {0}".format(runtime(disable_start)))
 
-def check_defense(in_out, metrics): # If any of the tools that require the Defense Mapping license are selected, check out the Defense license
-	if metrics:
-		class LicenseError(Exception):
-			pass
-		try:
-			if ap.CheckExtension('defense') == 'Available' and in_out == 'out':
-				write("\n~~ Checking out Defense Mapping Extension ~~\n")
-				ap.CheckOutExtension('defense')
-			elif in_out == 'in':
-				write("\n~~ Checking Defense Mapping Extension back in ~~\n")
-				ap.CheckInExtension('defense')
-			else:
-				raise LicenseError
-		except LicenseError:
-			write("Defense Mapping license is unavailable")
-		except ap.ExecuteError:
-			writeresults('check_defense')
+def check_defense(in_out): # If any of the tools that require the Defense Mapping license are selected, check out the Defense license
+	class LicenseError(Exception):
+		pass
+	try:
+		if ap.CheckExtension('defense') == 'Available' and in_out == 'out':
+			write("\n~~ Checking out Defense Mapping Extension ~~\n")
+			ap.CheckOutExtension('defense')
+		elif in_out == 'in':
+			write("\n~~ Checking Defense Mapping Extension back in ~~\n")
+			ap.CheckInExtension('defense')
+		else:
+			raise LicenseError
+	except LicenseError:
+		write("Defense Mapping license is unavailable")
+	except ap.ExecuteError:
+		writeresults('check_defense')
 
 def refresh_extent(): # Recalculate each feature class extent to minimize the dataset bounding polygon for data partitioning
 	# refresh_extent_start = dt.now()
@@ -736,6 +773,7 @@ def repair_geometry():
 	repair_start = dt.now()
 	write("\n--- {0} ---\n".format(tool_names.repair))
 	for fc in featureclass:
+		progress(tool_names.repair, fc, 'next')
 		write("Repairing NULL geometries in {0}".format(fc))
 		ap.RepairGeometry_management(fc, "DELETE_NULL")
 		#ap.RepairBadGeometry_production(featureclass, 'REPAIR_ONLY', 'DELETE_NULL_GEOMETRY', '#') # Repair Bad Geometry Production Mapping tool
@@ -748,6 +786,7 @@ def pop_fcode():
 	fcode_total = 0
 	fields = ['f_code', 'fcsubtype']
 	for fc in featureclass:
+		progress(tool_names.fcode, fc, 'next')
 		fcode_count = 0
 		try:
 			with ap.da.UpdateCursor(fc, fields, where_scale) as ucursor:
@@ -792,6 +831,7 @@ def process_defaults(fc_list):
 	count_nulls = 0
 	write("Constructing field type lists to match default values to domain definitions")
 	for fc in fc_list:
+		progress(tool_names.defaults, fc, 'next')
 		out_fields = ['shape', 'area', 'length', 'created', 'edited', 'f_code', 'fcsubtype', 'ufi', 'version']
 		in_types = ['Double', 'Integer', 'Single', 'SmallInteger']
 		string_fields = [field.name for field in arcpy.ListFields(fc, None, 'String') if not any(substring in field.name.lower() for substring in out_fields)]
@@ -812,17 +852,22 @@ def calc_metrics():
 	metrics_start = dt.now()
 	write("\n--- {0} ---\n".format(tool_names.metrics))
 	for fc in featureclass:
+		progress(tool_names.metrics, fc, 'next')
+		if 'InformationCrv' in fc:
+			continue
 		shape_type = ap.Describe(fc).shapeType # Polygon, Polyline, Point, Multipoint, MultiPatch
-		if shape_type == 'Polyline':
-			make_lyr(fc, 'fc_lyr', where_scale)
+		if 'Polyline' in shape_type:
 			write("Calculating Length field for {0}".format(fc))
-			ap.CalculateMetrics_defense('fc_lyr', 'LENGTH', "LZN", "#", "#", "#", "#", "#")
-			arcdel('fc_lyr')
-		elif shape_type == 'Polygon':
-			make_lyr(fc, 'fc_lyr', where_scale)
+			with ap.da.UpdateCursor(fc, ['LZN', 'SHAPE@'], where_scale) as ucursor:
+				for urow in ucursor:
+					urow[0] = int(round(urow[-1].getLength('PRESERVE_SHAPE')))
+					ucursor.updateRow(urow)
+		elif 'Polygon' in shape_type:
 			write("Calculating Area field for {0}".format(fc))
-			ap.CalculateMetrics_defense('fc_lyr', 'AREA', "#", "#", "ARA", "#", "#", "#")
-			arcdel('fc_lyr')
+			with ap.da.UpdateCursor(fc, ['ARA', 'SHAPE@'], where_scale) as ucursor:
+				for urow in ucursor:
+					urow[0] = int(round(urow[-1].getArea('PRESERVE_SHAPE')))
+					ucursor.updateRow(urow)
 	greentext("{0} finished in {1}".format(tool_names.metrics, runtime(metrics_start)))
 
 #-----------------------------------
@@ -831,6 +876,7 @@ def update_ufi():
 	write("\n--- {0} ---\n".format(tool_names.ufi))
 	ufi_total = 0
 	for fc in featureclass:
+		progress(tool_names.ufi, fc, 'next')
 		ufi_fc_start = dt.now()
 		write("Scanning {0} UFIs in {1}...".format(fc_counts[fc], fc))
 		with ap.da.UpdateCursor(fc, 'ufi', where_scale) as ucursor:
@@ -848,8 +894,9 @@ def update_ufi():
 # 	arcpy.RemoveCutbacks_production(roads, minimum_angle, "SEQUENTIAL", '#', 'IGNORE_SNAPPED_POINTS', '#')
 
 def snap_lines_to_srf(lines, srf):
-	#tolerance = "0.03 Meters"
-	tolerance = "1 Meters"
+	#tolerance = "0.1 Meters"
+	tolerance = "0.05 Meters"
+	#tolerance = "1 Meters"
 	vertex_env = [srf, "VERTEX", tolerance] # Snap lines to the nearest srf vertex within 0.03m
 	edge_env = [srf, "EDGE", "0.03 Meters"] # Snap remaining lines to the nearest srf edge within 0.03m
 	write("Snapping line end nodes to rank 1 surface vertices rank 2 surface edges.")
@@ -859,8 +906,9 @@ def snap_lines_to_srf(lines, srf):
 	ap.RepairGeometry_management(srf, "DELETE_NULL")
 
 def snap_points_to_lines(points, lines):
-	#tolerance = "0.03 Meters"
-	tolerance = "1 Meters"
+	#tolerance = "0.1 Meters"
+	tolerance = "0.05 Meters"
+	#tolerance = "1 Meters"
 	end_env = [lines, "END", tolerance] # Snap points to the nearest line end node within 0.03m as priority over other vertices
 	vertex_env = [lines, "VERTEX", "0.03 Meters"] # Snap points to the nearest line vertex within 0.03m
 	edge_env = [lines, "EDGE", "0.03 Meters"] # Snap remaining points to the nearest line edge within 0.03m
@@ -922,6 +970,7 @@ def integrate_hydro():
 	write("Partitioning large feature class into chunks for processing")
 	with ap.da.SearchCursor(grid_lyr, ['OID@']) as scursor:
 		for row in scursor:
+			ap.SetProgressorLabel("Processing Hydrography features in partition {0}...".format(row[0]))
 			select = "OID = {}".format(row[0])
 			select_by_att(grid_lyr, "NEW_SELECTION", select)
 			select_by_loc(hydro_pnt, "INTERSECT", grid_lyr, "", "NEW_SELECTION")
@@ -960,6 +1009,7 @@ def integrate_trans():
 	write("Partitioning large feature class into chunks for processing")
 	with ap.da.SearchCursor(grid_lyr, ['OID@']) as scursor:
 		for row in scursor:
+			ap.SetProgressorLabel("Processing Transportation features in partition {0}...".format(row[0]))
 			select = "OID = {}".format(row[0])
 			select_by_att(grid_lyr, "NEW_SELECTION", select)
 			select_by_loc(trans_pnt, "INTERSECT", grid_lyr, "", "NEW_SELECTION")
@@ -997,6 +1047,7 @@ def integrate_util():
 	write("Partitioning large feature class into chunks for processing")
 	with ap.da.SearchCursor(grid_lyr, ['OID@']) as scursor:
 		for row in scursor:
+			ap.SetProgressorLabel("Processing Utility features in partition {0}...".format(row[0]))
 			select = "OID = {}".format(row[0])
 			select_by_att(grid_lyr, "NEW_SELECTION", select)
 			select_by_loc(util_pnt, "INTERSECT", grid_lyr, "", "NEW_SELECTION")
@@ -1123,6 +1174,7 @@ def update_bridge_wid(defbridge, allbridge):
 		write("Primary Loop Engaged...")
 		# Loop to update Bridge/Tunnel width and CTUU to it's corresponding Road width and CTUU
 		if total_roads:
+			ap.SetProgressorLabel("Updating WID and CTUU for Bridges and Tunnels on Roads...")
 			with ap.da.UpdateCursor(bridge_crv_lyr, bridge_fields) as u_road_bridges: # UpdateCursor for Bridges/Tunnels with width, CTUU, and geometry
 				for abridge in u_road_bridges:
 					with ap.da.SearchCursor(roads_lyr, road_fields) as s_roads: # SearchCursor for roads with width, CTUU, and geometry
@@ -1139,6 +1191,7 @@ def update_bridge_wid(defbridge, allbridge):
 
 		# Loop to update Bridge/Tunnel width and CTUU to it's corresponding Cart Track width and CTUU
 		if total_cart_tracks:
+			ap.SetProgressorLabel("Updating WID and CTUU for Bridges and Tunnels on Cart Tracks...")
 			with ap.da.UpdateCursor(bridge_crv_lyr, bridge_fields) as u_cart_bridges: # UpdateCursor for Bridges/Tunnels with width, CTUU, and geometry
 				for abridge in u_cart_bridges:
 					with ap.da.SearchCursor(cart_tracks_lyr, cart_track_fields) as s_cart_tracks: # SearchCursor for Cart Tracks with width, CTUU, and geometry
@@ -1155,6 +1208,7 @@ def update_bridge_wid(defbridge, allbridge):
 
 		# Loop to update Bridge/Tunnel width and CTUU to it's corresponding Rail width and CTUU
 		if total_rails:
+			ap.SetProgressorLabel("Updating WID and CTUU for Bridges and Tunnels on Railways...")
 			with ap.da.UpdateCursor(bridge_crv_lyr, bridge_fields) as u_rail_bridges: # UpdateCursor for Bridges/Tunnels with width, CTUU, and geometry
 				for abridge in u_rail_bridges:
 					with ap.da.SearchCursor(rails_lyr, rail_fields) as s_rails: # SearchCursor for Rails with width, CTUU, and geometry
@@ -1277,6 +1331,7 @@ def update_pylong_hgt(defpylong, allpylong):
 	write("These Pylons will have their height and CTUU compared against the intersecting Cables and will be updated accordingly.\n")
 
 	if total_pylons_on_cables: # Double check that there are intersecting Pylons to work on
+		ap.SetProgressorLabel("Updating HGT and CTUU for Pylons on Cables...")
 		write("Primary Loop Engaged...")
 		# Loop to update Pylon HGT and CTUU to it's corresponding Cable HGT and CTUU
 		with ap.da.UpdateCursor(pylons_on_cables_lyr, util_fields) as u_pylons_on_cables: # UpdateCursor for Pylons with height, CTUU, and geometry
@@ -1403,6 +1458,7 @@ def populate_woc(defdam, alldam):
 	total_train_intersects = 0
 	total_updated_no_trans = 0
 	if total_dams: # Double check that there are Dams to work on
+		ap.SetProgressorLabel("Updating WOC and TRS on Dams...")
 		write("\nPrimary Loop Engaged...")
 		with ap.da.UpdateCursor(dams_lyr, hydro_fields) as dams: # [0]-WOC, [1]-TRS, [-1]-SHAPE@
 			for dam in dams:
@@ -1541,13 +1597,14 @@ def buildings_in_buas():
 		return bua_count, total_2upscale, total_2descale
 
 	# Adam's original important ffn list for just building points: (850, 851, 852, 855, 857, 860, 861, 871, 873, 875, 862, 863, 864, 866, 865, 930, 931)
-	write("Identifying building surfaces matching criteria...\n")
-	write("Current project important building FFNs list:")
+	write("Current project important Building FFNs list:")
 	write("\n".join("{}: {}".format(k, v) for k, v in ad.ffn_list_p10_combo.items())) #dict_import
 	write(" ")
 
 	if ap.Exists(structure_srf): # Must check using Exists() in case both 'Skip Buildings' and 'Building in BUA Scaler' were checked
 		if get_count(structure_srf): # If it exists, count the features. If there are more than 0, then continue with the task
+			ap.SetProgressorLabel("Identifying important Building surfaces...")
+			write("Identifying Building surfaces matching criteria...\n")
 			if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
 				greentext("Disabling Editor Tracking for StructureSrf feature class.")
 				ap.DisableEditorTracking_management(structure_srf)
@@ -1568,14 +1625,15 @@ def buildings_in_buas():
 
 			total_2upscale_s = get_count("building_s_12.5k_within_2upscale")
 			total_2descale_s = get_count("building_s_50k+_within_2descale")
-			write("{0} below scale building surfaces in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_s, bua_count))
-			write("{0} building surfaces >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.".format(total_2descale_s, bua_count))
+			write("{0} below scale Building surfaces in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_s, bua_count))
+			write("{0} Building surfaces >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.".format(total_2descale_s, bua_count))
 
 			#-----------------------------------
 
 			if total_2upscale_s:
 				# Scale in important, tall, or landmark building surfaces within BUAs from below 50k to 250k (per PSG)
-				write("Setting below scale important, tall, or interesting building surfaces to 250k...")
+				ap.SetProgressorLabel("Upscaling important Building surfaces...")
+				write("Setting below scale important, tall, or interesting Building surfaces to 250k...")
 				with ap.da.UpdateCursor("building_s_12.5k_within_2upscale", update_field) as ucursor:
 					for urow in ucursor:
 						urow[0] = 250000
@@ -1583,7 +1641,8 @@ def buildings_in_buas():
 
 			if total_2descale_s:
 				# Descale unimportant, short, and uninteresting building surfaces within BUAs from 50k+ to 12.5k
-				write("Setting unimportant, short, and uninteresting building surfaces to 12.5k...")
+				ap.SetProgressorLabel("Descaling unimportant Building surfaces...")
+				write("Setting unimportant, short, and uninteresting Building surfaces to 12.5k...")
 				with ap.da.UpdateCursor("building_s_50k+_within_2descale", update_field) as ucursor:
 					for urow in ucursor:
 						urow[0] = 12500
@@ -1593,6 +1652,8 @@ def buildings_in_buas():
 
 	if ap.Exists(structure_pnt):
 		if get_count(structure_pnt): # If it exists, count the features. If there are more than 0, then continue with the task
+			ap.SetProgressorLabel("Identifying important Building points...")
+			write("Identifying Building points matching criteria...\n")
 			if bool_dict[tool_names.vogon] and bool_dict[tool_names.disable]: # disable_editor_tracking() won't apply to StructureSrf and Pnt if Skip Buildings is checked. correct for that here.
 				greentext("Disabling Editor Tracking for StructurePnt feature class.")
 				ap.DisableEditorTracking_management(structure_pnt)
@@ -1613,14 +1674,15 @@ def buildings_in_buas():
 
 			total_2upscale_p = get_count("building_p_12.5k_within_2upscale")
 			total_2descale_p = get_count("building_p_50k+_within_2descale")
-			write("{0} below scale building points in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_p, bua_count))
-			write("{0} building points >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.".format(total_2descale_p, bua_count))
+			write("{0} below scale Building points in {1} BUAs are important, tall, or interesting.\nThey will be scaled up.".format(total_2upscale_p, bua_count))
+			write("{0} Building points >= 50k in {1} BUAs are unimportant, short, and uninteresting.\nThey will be descaled.".format(total_2descale_p, bua_count))
 
 			#-----------------------------------
 
 			if total_2upscale_p:
 				# Scale in important, tall, or landmark building points within BUAs from below 50k to 50k
-				write("Setting below scale important, tall, or interesting building points to 50k...")
+				ap.SetProgressorLabel("Upscaling important Building points...")
+				write("Setting below scale important, tall, or interesting Building points to 50k...")
 				with ap.da.UpdateCursor("building_p_12.5k_within_2upscale", update_field) as ucursor:
 					for urow in ucursor:
 						urow[0] = 50000
@@ -1628,7 +1690,8 @@ def buildings_in_buas():
 
 			if total_2descale_p:
 				# Descale unimportant, short, and uninteresting building points within BUAs from 50k+ to 12.5k
-				write("Setting unimportant, short, and uninteresting building points to 12.5k...")
+				ap.SetProgressorLabel("Descaling unimportant Building points...")
+				write("Setting unimportant, short, and uninteresting Building points to 12.5k...")
 				with ap.da.UpdateCursor("building_p_50k+_within_2descale", update_field) as ucursor:
 					for urow in ucursor:
 						urow[0] = 12500
@@ -1645,10 +1708,10 @@ def buildings_in_buas():
 	# Clean up created layers
 	clear_cache(["buas", "building_s_50k+", "building_s_50k+_within_2descale", "building_s_12.5k", "building_s_12.5k_within_2upscale"])
 
-	write("{0} building surfaces scaled to 250k.".format(total_2upscale_s))
-	write("{0} building surfaces scaled to 12.5k.".format(total_2descale_s))
-	write("{0} building points scaled to 50k.".format(total_2upscale_p))
-	write("{0} building points scaled to 12.5k.".format(total_2descale_p))
+	write("{0} Building surfaces scaled to 250k.".format(total_2upscale_s))
+	write("{0} Building surfaces scaled to 12.5k.".format(total_2descale_s))
+	write("{0} Building points scaled to 50k.".format(total_2upscale_p))
+	write("{0} Building points scaled to 12.5k.".format(total_2descale_p))
 	greentext("\n{0} Buildings scaled up and {1} Buildings scaled down {2}".format(total_2upscale, total_2descale, runtime(building_start)))
 
 	return bua_count, total_2upscale, total_2descale
@@ -1939,7 +2002,7 @@ fc_counts, featureclass, featurerecess = create_fc_list() # Create the feature c
 if bool_dict[tool_names.disable]:
 	disable_editor_tracking(gdb_name) # Disables Editor Tracking for all feature classes
 mem_grid = grid_chungus() # Create the extent polygon grid for partitioning the data
-check_defense('out', bool_dict[tool_names.metrics]) # Checks out the Defense Mapping extension. Only need for Calculate Metrics. Soon to be deprecated.
+#check_defense('out') # Checks out the Defense Mapping extension. Only need for Calculate Metrics. Soon to be deprecated.
 write("")
 
 
@@ -1962,10 +2025,12 @@ write("")
 ''''''''' Repair All NULL Geometry '''''''''
 # Repairs all NULL geometries in each feature class
 if bool_dict[tool_names.repair]:
+	progress(tool_names.repair, '', 'start')
 	try:
 		repair_geometry()
 	except ap.ExecuteError:
 		writeresults(tool_names.repair)
+	progress(tool_names.repair, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -1976,30 +2041,36 @@ if bool_dict[tool_names.fcode]:
 	#~~~~~ Royal Decree Variables ~~~~~
 	fcode_total = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.fcode, '', 'start')
 	try:
 		fcode_total = pop_fcode()
 	except ap.ExecuteError:
 		writeresults(tool_names.fcode)
+	progress(tool_names.fcode, '', 'stop')
 
 
 #----------------------------------------------------------------------
 ''''''''' Calculate Default Values '''''''''
 # Calculates default values for all fields with NULL attributes
 if bool_dict[tool_names.defaults]:
+	progress(tool_names.defaults, '', 'start')
 	try:
 		process_defaults(featureclass)
 	except ap.ExecuteError:
 		writeresults(tool_names.defaults)
+	progress(tool_names.defaults, '', 'stop')
 
 
 #----------------------------------------------------------------------
 ''''''''' Calculate Metrics '''''''''
 # Calculates the metric values of the specified fields (LZN and ARA)
 if bool_dict[tool_names.metrics]:
+	progress(tool_names.metrics, '', 'start')
 	try:
 		calc_metrics()
 	except ap.ExecuteError:
 		writeresults(tool_names.metrics)
+	progress(tool_names.metrics, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2009,11 +2080,13 @@ if bool_dict[tool_names.ufi]:
 	#~~~~~ Royal Decree Variables ~~~~~
 	ufi_total = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.ufi, '', 'start')
 	try:
 		ufi_total = update_ufi()
 		#Update UFI Values updated 0 invalid or missing UFI values in 0:20:9.3510
 	except ap.ExecuteError:
 		writeresults(tool_names.ufi)
+	progress(tool_names.ufi, '', 'stop')
 
 
 
@@ -2027,10 +2100,12 @@ if bool_dict[tool_names.hydro]:
 	#~~~~~ Royal Decree Variables ~~~~~
 	hfeat_count = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.hydro, '', 'start')
 	try:
 		hfeat_count = integrate_hydro()
 	except ap.ExecuteError:
 		writeresults(tool_names.hydro)
+	progress(tool_names.hydro, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2039,10 +2114,12 @@ if bool_dict[tool_names.trans]:
 	#~~~~~ Royal Decree Variables ~~~~~
 	tfeat_count = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.trans, '', 'start')
 	try:
 		tfeat_count = integrate_trans()
 	except ap.ExecuteError:
 		writeresults(tool_names.trans)
+	progress(tool_names.trans, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2051,10 +2128,12 @@ if bool_dict[tool_names.util]:
 	#~~~~~ Royal Decree Variables ~~~~~
 	ufeat_count = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.util, '', 'start')
 	try:
 		ufeat_count = integrate_util()
 	except ap.ExecuteError:
 		writeresults(tool_names.util)
+	progress(tool_names.util, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2067,10 +2146,12 @@ if bool_dict[tool_names.defbridge]:
 	def_updated_bridge_ctuus = 0
 	def_remaining_default_bridges = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.defbridge, '', 'start')
 	try:
 		def_total_bridges, def_updated_bridge_wids, def_updated_bridge_ctuus, def_remaining_default_bridges = update_bridge_wid(True, False)
 	except ap.ExecuteError:
 		writeresults(tool_names.defbridge)
+	progress(tool_names.defbridge, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2083,10 +2164,12 @@ if bool_dict[tool_names.defpylong]:
 	def_updated_pylon_ctuus = 0
 	def_remaining_default_pylons = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.defpylong, '', 'start')
 	try:
 		def_total_pylons, def_updated_pylon_hgts, def_updated_pylon_ctuus, def_remaining_default_pylons = update_pylong_hgt(True, False)
 	except ap.ExecuteError:
 		writeresults(tool_names.defpylong)
+	progress(tool_names.defpylong, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2098,17 +2181,18 @@ if bool_dict[tool_names.defdam]:
 	def_updated_dams = 0
 	def_dams_without_trans = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.defdam, '', 'start')
 	try:
 		def_total_dams, def_updated_dams, def_dams_without_trans = populate_woc(True, False)
 	except ap.ExecuteError:
 		writeresults(tool_names.defdam)
+	progress(tool_names.defdam, '', 'stop')
 
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # Geometry Correction Tools Category #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
 
 #----------------------------------------------------------------------
 ''''''''' Hypernova Burst Multipart Features '''''''''
@@ -2117,6 +2201,7 @@ if bool_dict[tool_names.explode]:
 	explode_start = dt.now()
 	tool_name = 'Hypernova Burst Multipart Features'
 	write("\n--- {0} ---\n".format(tool_name))
+	progress(tool_names.explode, '', 'start')
 	##### Multipart Search #####
 	fc_multi = {} # Create empty dictionary to house lists of mulitpart features and their feature classes
 	fc_multi_list = []
@@ -2124,6 +2209,7 @@ if bool_dict[tool_names.explode]:
 	total_complex = 0
 	# Identifying the true multipart features and separating from complex singlepart polygons flagged as multiparts
 	for fc in featureclass:
+		progress(tool_names.explode, fc, 'next')
 		try:
 			write("Searching for multipart features in {0}".format(fc))
 			multipart = False # Assume the feature class doesn't have multiparts
@@ -2181,6 +2267,7 @@ if bool_dict[tool_names.explode]:
 	in_class = "multi"
 	out_class = "single"
 	for fc in fc_multi_list:
+		progress(tool_names.explode, fc, 'next')
 		try:
 			#sanitize feature class name from sde cz the sde always has to make things more difficult than they need to be...
 			fc_parts = fc.split(".")
@@ -2264,6 +2351,7 @@ if bool_dict[tool_names.explode]:
 	except:
 		write("No in_class or out_class created. Or processing layers have already been cleaned up. Continuing...")
 		pass
+	progress(tool_names.explode, '', 'stop')
 	greentext("{0} features exploded in {1}".format(total_multi, runtime(explode_start)))
 
 
@@ -2274,6 +2362,7 @@ if bool_dict[tool_names.dups]:
 	dups_start = dt.now()
 	tool_name = 'Delete Identical Features'
 	write("\n--- {0} ---\n".format(tool_name))
+	progress(tool_names.dups, '', 'start')
 	out_table = os.path.dirname(TDS) # Output directory for Find Identical # C:/Projects/njcagle/S1_C09C_20210427.gdb
 	path = os.path.join(rresults, gdb_name) # Output dBASE table location # C:/Projects/njcagle/S1_C09C_20210427
 	table_loc = "{0}.dbf".format(path) # C:/Projects/njcagle/R&D/__Thunderdome/S1_C09C_20210427.dbf
@@ -2281,6 +2370,7 @@ if bool_dict[tool_names.dups]:
 	dup_count = 0
 
 	for fc in featureclass: # Loop feature classes and FindIdentical to get a count, then delete any found
+		progress(tool_names.dups, fc, 'next')
 		try:
 			dick = ad.fc_fields_og[fc] # Does not include metric fields. Uses 'Shape' instead of 'SHAPE@' #dict_import
 			ap.FindIdentical_management(fc, out_table, dick, "", "", output_record_option="ONLY_DUPLICATES")
@@ -2303,6 +2393,7 @@ if bool_dict[tool_names.dups]:
 	os.remove("{0}.cpg".format(path))
 	os.remove("{0}.IN_FID.atx".format(path))
 	ap.RefreshCatalog(out_table)
+	progress(tool_names.dups, '', 'stop')
 	greentext("{0} duplicates removed in {1}".format(dup_count, runtime(dups_start)))
 
 	# ##### check Shape vs shape@ and add xy-tolerance to find and delete identical
@@ -2337,10 +2428,12 @@ if bool_dict[tool_names.allbridge]:
 	all_updated_bridge_ctuus = 0
 	all_remaining_default_bridges = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.allbridge, '', 'start')
 	try:
 		all_total_bridges, all_updated_bridge_wids, all_updated_bridge_ctuus, all_remaining_default_bridges = update_bridge_wid(False, True)
 	except ap.ExecuteError:
 		writeresults(tool_names.allbridge)
+	progress(tool_names.allbridge, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2353,10 +2446,12 @@ if bool_dict[tool_names.allpylong]:
 	all_updated_pylon_ctuus = 0
 	all_remaining_default_pylons = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.allpylong, '', 'start')
 	try:
 		all_total_pylons, all_updated_pylon_hgts, all_updated_pylon_ctuus, all_remaining_default_pylons = update_pylong_hgt(False, True)
 	except ap.ExecuteError:
 		writeresults(tool_names.allpylong)
+	progress(tool_names.allpylong, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2368,10 +2463,12 @@ if bool_dict[tool_names.alldam]:
 	all_updated_dams = 0
 	all_dams_without_trans = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.alldam, '', 'start')
 	try:
 		all_total_dams, all_updated_dams, all_dams_without_trans = populate_woc(False, True)
 	except ap.ExecuteError:
 		writeresults(tool_names.alldam)
+	progress(tool_names.alldam, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2384,10 +2481,12 @@ if bool_dict[tool_names.building]:
 	total_2upscale = 0
 	total_2descale = 0
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	progress(tool_names.building, '', 'start')
 	try:
 		bua_count, total_2upscale, total_2descale = buildings_in_buas()
 	except ap.ExecuteError:
 		writeresults(tool_names.building)
+	progress(tool_names.building, '', 'stop')
 
 
 #----------------------------------------------------------------------
@@ -2411,6 +2510,7 @@ if bool_dict[tool_names.building]:
 while bool_dict[tool_names.fcount]:
 	fcount_start = dt.now()
 	write("\n--- {0} ---\n".format(tool_names.fcount))
+	progress(tool_names.fcount, '', 'start')
 	#~~~~~ Royal Decree Variables ~~~~~
 	pnt_cnt = 0
 	crv_cnt = 0
@@ -2486,6 +2586,7 @@ while bool_dict[tool_names.fcount]:
 
 	# Fill in dictionary with itemized feature subtype counts
 	for i in featureclass_count:
+		progress(tool_names.fcount, i, 'next')
 		currFC = str(i)
 		currShape = currFC[-3:]
 		feat_dict[currFC]=[{},0]
@@ -2537,7 +2638,9 @@ while bool_dict[tool_names.fcount]:
 				exList.append(currFC)
 				continue
 		write("{0} features counted".format(currFC))
+	progress(tool_names.fcount, '', 'stop')
 
+	progress(tool_names.fcount, '', 'start')
 	# Setup and write results to text file
 	write("\nWriting report to TXT file...\n")
 	with open(results,'w') as txt_file:
@@ -2578,6 +2681,7 @@ while bool_dict[tool_names.fcount]:
 			if feat_dict[fKey][1] == 0:
 				txt_file.write("{0}\n".format(fKey))
 
+	progress(tool_names.fcount, '', 'stop')
 	greentext("Feature Count Report created. File located in the same folder as the database:\n{0}\n".format(results))
 	greentext("{0} finished in {1}".format(tool_names.fcount, runtime(fcount_start)))
 	break
@@ -2589,6 +2693,7 @@ while bool_dict[tool_names.fcount]:
 while bool_dict[tool_names.vsource]:
 	vsource_start = dt.now()
 	write("\n--- {0} ---\n".format(tool_names.vsource))
+	progress(tool_names.vsource, '', 'start')
 
 	# if not 'StructurePnt' in featureclass and ap.Exists('StructurePnt'):
 	# 	featureclass.append(u'StructurePnt')
@@ -2606,6 +2711,7 @@ while bool_dict[tool_names.vsource]:
 
 	# Fill in dictionary with leveled counts: Version -> SDP -> SDV *optional SRT
 	for i in featureclass_source:
+		progress(tool_names.vsource, i, 'next')
 		feat_dict[str(i)]=OrderedDict()
 		with ap.da.SearchCursor(i,fields) as vCursor:
 			try:
@@ -2622,7 +2728,9 @@ while bool_dict[tool_names.vsource]:
 			except:
 				write("**** {0} does not have required fields ****".format(i))
 		write("{0} feature sources identified".format(i))
+	progress(tool_names.vsource, '', 'stop')
 
+	progress(tool_names.vsource, '', 'start')
 	# Set up and write dictionary out to CSV
 	write("\nWriting report to CSV and TXT file...\n")
 	with open(results_csv,'wb') as csvFile:
@@ -2654,6 +2762,7 @@ while bool_dict[tool_names.vsource]:
 							line = [''.ljust(25),vKey.center(14),sKey.ljust(65),dKey.center(16),str(feat_dict[fKey][vKey][sKey][dKey]).rjust(8)+'\n']
 							txt_file.writelines(line)
 
+	progress(tool_names.vsource, '', 'stop')
 	greentext("Source Analysis Reports created. Files located in the same folder as the database:\n{0}\n{1}\n".format(results_csv, results_txt))
 	greentext("{0} finished in {1}".format(tool_names.vsource, runtime(vsource_start)))
 	break
@@ -2671,8 +2780,9 @@ while bool_dict[tool_names.vsource]:
 ╚═══════════════════════════════╝
 '''
 #----------------------------------------------------------------------
+ap.SetProgressor("default", "Completed all specified Finishing tools. Please see output summary below.")
 write("\n\nFreeing partition memory")
-check_defense('in', bool_dict[tool_names.metrics]) # Checks back in the Defense Mapping extension. Only need for Calculate Metrics. Soon to be deprecated.
+#check_defense('in') # Checks back in the Defense Mapping extension. Only need for Calculate Metrics. Soon to be deprecated.
 arcdel("in_memory")
 
 #----------------------------------------------------------------------
@@ -2858,3 +2968,5 @@ if not bool_dict[tool_names.repair] and not bool_dict[tool_names.fcode] and not 
 write(u"    |                              {0}      _       |\n    |                              {0}   __(.)<     |\n    |                              {0}~~~\\___)~~~   |".format(exs))
 write(u"    |   {0}{2}___|___\n    |  /{1}{3}      /\n    \\_/_{0}{2}_____/".format(slines, sspaces, exl, exs))
 write("\n")
+
+ap.ResetProgressor()

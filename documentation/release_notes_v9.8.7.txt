@@ -1,0 +1,63 @@
+Finishing Tool Suite Official Release
+
+Version 9.8.7
+The Finishing Tool Suite is now ready for a general release to Team Leads, QC, and Managers. 
+Make sure you have the most recent version.
+
+For those unaware, the Finishing Tool Suite is a toolbox containing 19 tools used for Finishing 
+and Preprocessing. It is designed to automate some of the data preprocessing, preparation, 
+conditioning, repair, geoprocessing, and analysis workflows that are used regularly in Finishing. 
+This was done out of necessity due to the rapid increase in size and complexity of the data and 
+requirements since the start of Project 9. Many of the tasks performed by these tools were 
+originally done manually for each individual scale before GAIT, AO, or other client inspections 
+could be run. The tools drastically reduce the amount of GAIT and AO errors that would occur in 
+an unprocessed geodatabase. The changes made by the Finishing Tool Suite can reduce GAIT errors 
+up to 40-50% and AO errors up to 80%.
+
+Up to this point, the Finishing Tool Suite has not been widely distributed due to the dynamic 
+nature of the client/project requirements. Updates to the functionality of the tools were made 
+fairly often, and it was not feasible to release new versions of the tool every few weeks. This 
+would have just caused confusion. There has been some recent discussion of Team Leads and 
+Managers performing interim GAIT and AO runs on the databases to lessen some of the bottlenecked 
+pressure on Finishing. Much of the current Finishing process has not been fully documented 
+because of time constraints and a dynamically evolving workflow. The purpose of this wider 
+release of the Finishing Tool Suite is to work towards this.
+
+In its simplest form, this is the general workflow for performing interim GAIT/AO runs.
+  - The TPC needs to be copied down from SDE to a local GDB.
+  - The GDB has to be split into separate GDBs by AOI, scale, and/or activity requirement.
+  - The first two steps can be accomplished with the Database Guillotine fairly easily and in 
+    only one step.
+  - The Finishing Tools have to be run on each of the split TDS datasets.
+  - Each GDB is run through GAIT with the most recent client inspection files and this option 
+    unchecked.
+  - Using the latest version of the NGA Janus toolbox, the Attribute Oversight tool is run on 
+    each GDB.
+
+Descriptions and explanations for all of the tool options can be found in the Finishing Tool 
+Suite v9.8.7 Documentation PDF. A more detailed breakdown of what the Finishing Tool Suite 
+actually does can be found in the Manual Finishing Preparation and Repair PDF. (This is not a 
+step by step guide for Finishing. It is for documentation purposes and to serve as a sense of 
+scale for everything the tools do.)
+
+
+Important Notes About Using Toolbox Tools
+  - Make sure the "Close this dialog when completed successfully" option is unchecked once the 
+    tool is running.
+  - When using the Finishing Tool Suite or any other toolbox tool, you must expand the "Details" 
+    option when the tool is running. All of the important information about what the tool is doing 
+    will be output in that window.
+  - When you open any toolbox tool, be sure to turn on the "Tool Help" panel on the right. A 
+    description and explanation of the tool options is usually available. For all of the toolboxes 
+    that have been released by the Finishing Team, this is the case. 
+  - If you find a bug or the tool fails, do not close the window. Contact Nat Cagle or John 
+    Jackson. Send a screenshot of the error and copy/paste the text output of the error and the 
+    last few lines of what the tool was doing. Otherwise, we will not be able to help. For most 
+    errors, a large red skull will appear. There was an issue previously with something going 
+    wrong and someone didn't notice. If you see this, read through the error report to see if it 
+    offers any potential solutions to what went wrong.
+
+
+One final note:
+** DO NOT TRY TO RUN THIS TOOL IN SDE!! **
+

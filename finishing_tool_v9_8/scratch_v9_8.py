@@ -1629,131 +1629,6 @@ for fc in featureclass:
 print("{0} UFI values updated in {1}".format(ufi_total, runtime(ufi_start)))
 
 
-
-
-
-
-
-- 908756 TransportationGroundCrv features
-- 195835 UtilityInfrastructurePnt features
-- 134994 VegetationSrf features
-- 114664 HydrographyCrv features
-
-- 48903 VegetationCrv features
-- 47215 AgricultureSrf features
-- 39785 HydrographyPnt features
-- 31636 SettlementSrf features
-- 26211 PhysiographySrf features
-- 25639 TransportationGroundPnt features
-- 19830 StoragePnt features
-- 16079 HydrographySrf features
-- 11871 StructureCrv features
-- 11246 UtilityInfrastructureCrv features
-
---- Update UFI Values ---
-
-40339 invalid or missing UFI values updated in 33 minutes and 22.2 seconds
-
-542 UFIs not populated
-11730 UFIs illegally formatted
-28067 UFIs duplicated
-
-Searched 908756 TransportationGroundCrv UFIs in 856.7 seconds  = 1061 features/second
-Searched 195835 UtilityInfrastructurePnt UFIs in 536.9 seconds  = 365 features/second
-Searched 134994 VegetationSrf UFIs in 313.4 seconds  = 431 features/second
-
-Searched 114664 HydrographyCrv UFIs in 119.9 seconds  = 956 features/second
-
-Searched 48903  VegetationCrv UFIs in 50.690 seconds = 965 features/second
-Searched 47215  AgricultureSrf UFIs in 44.844 seconds = 1053 features/second
-Searched 31636  SettlementSrf UFIs in 20.470 seconds = 1545 features/second
-Searched 26211  PhysiographySrf UFIs in 14.304 seconds = 1832 features/second
-Searched 17579  UFIs in 4.663 Seconds  = 3770 features/second
-Searched 1369   UFIs in 0.254 Seconds  = 5390 features/second
-
-
-Searching 11 UFIs in AeronauticCrv for invalid or missing values.
-Finished searching AeronauticCrv in 0.048 seconds
-Searching 403 UFIs in AeronauticPnt for invalid or missing values.
-Finished searching AeronauticPnt in 0.066 seconds
-Searching 1144 UFIs in AeronauticSrf for invalid or missing values.
-Finished searching AeronauticSrf in 0.147 seconds
-Searching 1502 UFIs in AgriculturePnt for invalid or missing values.
-Finished searching AgriculturePnt in 0.200 seconds
-Searching 3130 UFIs in CulturePnt for invalid or missing values.
-Finished searching CulturePnt in 0.474 seconds
-Searching 5756 UFIs in CultureSrf for invalid or missing values.
-Finished searching CultureSrf in 0.854 seconds
-Searching 2034 UFIs in FacilityPnt for invalid or missing values.
-Finished searching FacilityPnt in 0.282 seconds
-Searching 5 UFIs in HydroAidNavigationPnt for invalid or missing values.
-Finished searching HydroAidNavigationPnt in 0.034 seconds
-Searching 70 UFIs in IndustryCrv for invalid or missing values.
-Finished searching IndustryCrv in 0.036 seconds
-Searching 2018 UFIs in IndustryPnt for invalid or missing values.
-Finished searching IndustryPnt in 0.273 seconds
-Searching 1260 UFIs in IndustrySrf for invalid or missing values.
-Finished searching IndustrySrf in 0.167 seconds
-Searching 2566 UFIs in InformationCrv for invalid or missing values.
-Finished searching InformationCrv in 0.369 seconds
-Searching 3868 UFIs in InformationSrf for invalid or missing values.
-Finished searching InformationSrf in 0.645 seconds
-Searching 75 UFIs in MilitaryCrv for invalid or missing values.
-Finished searching MilitaryCrv in 0.038 seconds
-Searching 21 UFIs in MilitaryPnt for invalid or missing values.
-Finished searching MilitaryPnt in 0.034 seconds
-Searching 131 UFIs in MilitarySrf for invalid or missing values.
-Finished searching MilitarySrf in 0.044 seconds
-Searching 6465 UFIs in PhysiographyCrv for invalid or missing values.
-Finished searching PhysiographyCrv in 0.575 seconds
-Searching 72 UFIs in PortHarbourCrv for invalid or missing values.
-Finished searching PortHarbourCrv in 0.036 seconds
-Searching 21 UFIs in PortHarbourSrf for invalid or missing values.
-Finished searching PortHarbourSrf in 0.032 seconds
-Searching 44 UFIs in RecreationCrv for invalid or missing values.
-Finished searching RecreationCrv in 0.034 seconds
-Searching 1002 UFIs in RecreationPnt for invalid or missing values.
-Finished searching RecreationPnt in 0.048 seconds
-Searching 505 UFIs in RecreationSrf for invalid or missing values.
-Finished searching RecreationSrf in 0.081 seconds
-Searching 2607 UFIs in SettlementPnt for invalid or missing values.
-Finished searching SettlementPnt in 0.084 seconds
-Searching 995 UFIs in StorageSrf for invalid or missing values.
-Finished searching StorageSrf in 0.109 seconds
-Searching 4291 UFIs in TransportationGroundSrf for invalid or missing values.
-Finished searching TransportationGroundSrf in 0.733 seconds
-Searching 54 UFIs in TransportationWaterCrv for invalid or missing values.
-Finished searching TransportationWaterCrv in 0.037 seconds
-Searching 23 UFIs in TransportationWaterPnt for invalid or missing values.
-Finished searching TransportationWaterPnt in 0.032 seconds
-Searching 5 UFIs in TransportationWaterSrf for invalid or missing values.
-Finished searching TransportationWaterSrf in 0.032 seconds
-Searching 782 UFIs in UtilityInfrastructureSrf for invalid or missing values.
-Finished searching UtilityInfrastructureSrf in 0.105 seconds
-Searching 239 UFIs in VegetationPnt for invalid or missing values.
-Finished searching VegetationPnt in 0.033 seconds
-
-Searching 908756 UFIs in TransportationGroundCrv in 37.911 seconds
-Searching 195835 UFIs in UtilityInfrastructurePnt in 22.235 seconds
-Searching 134994 UFIs in VegetationSrf in 12.032 seconds
-Searching 114664 UFIs in HydrographyCrv in 9.539 seconds
-
-Searching 48903 UFIs in VegetationCrv in 50.260 seconds
-Searching 47215 UFIs in AgricultureSrf in 42.614 seconds
-Searching 31636 UFIs in SettlementSrf in 19.377 seconds
-Searching 26211 UFIs in PhysiographySrf in 13.899 seconds
-Searching 19830 UFIs in StoragePnt in 8.569 seconds
-Searching 25639 UFIs in TransportationGroundPnt in 7.965 seconds
-Searching 39785 UFIs in HydrographyPnt in 6.011 seconds
-Searching 16079 UFIs in HydrographySrf in 4.956 seconds
-Searching 11871 UFIs in StructureCrv in 3.181 seconds
-Searching 11246 UFIs in UtilityInfrastructureCrv in 2.174 seconds
-Searching 9748 UFIs in FacilitySrf in 2.422 seconds
-Searching 6439 UFIs in InformationPnt in 1.349 seconds
-
-1354249 invalid or missing UFI values updated in 4 minutes and 10.4 seconds
-
-
 #                           __                    __
 #           __       __     \_\  __          __   \_\  __   __       __
 #           \_\     /_/        \/_/         /_/      \/_/   \_\     /_/
@@ -1827,3 +1702,45 @@ def create_fc_list():
 	featureclass.sort()
 	write("Loaded {0} of 55 TDSv7.1 feature classes in {1}".format(len(featureclass), runtime(fc_list_start)))
 	return fc_counts, featureclass, featurerecess
+
+
+#                           __                    __
+#           __       __     \_\  __          __   \_\  __   __       __
+#           \_\     /_/        \/_/         /_/      \/_/   \_\     /_/
+#         .-.  \.-./  .-.   .-./  .-.   .-./  .-.   .-\   .-.  \.-./  .-.
+# `.     //-\\_//-\\_//-\\_//-\\_//-\\_//-\\_// \\_//-\\_//-\\_//-\\_//-\\
+# . `.__//   '-'   '-'\  '-'   '-'  /'-'   '-'\__'-'   '-'__/'-'   '-'\__
+#  `.___/              \__       __/\          \_\       /_/           \_\
+#                       \_\     /_/  \__
+#                                     \_\
+
+
+def calc_metrics():
+	metrics_start = dt.now()
+	write("\n--- {0} ---\n".format(tool_names.metrics))
+	for fc in featureclass:
+		shape_type = ap.Describe(fc).shapeType # Polygon, Polyline, Point, Multipoint, MultiPatch
+		if shape_type == 'Polyline':
+			write("Calculating Length field for {0}".format(fc))
+			with ap.da.UpdateCursor(fc, ['LZN', 'SHAPE@'], where_scale) as ucursor:
+				for urow in ucursor:
+					urow[0] = int(round(urow[-1].getLength('PRESERVE_SHAPE')))
+					ucursor.updateRow(urow)
+		elif shape_type == 'Polygon':
+			write("Calculating Area field for {0}".format(fc))
+			with ap.da.UpdateCursor(fc, ['ARA', 'SHAPE@'], where_scale) as ucursor:
+				for urow in ucursor:
+					urow[0] = int(round(urow[-1].getArea('PRESERVE_SHAPE')))
+					ucursor.updateRow(urow)
+	greentext("{0} finished in {1}".format(tool_names.metrics, runtime(metrics_start)))
+
+
+#                           __                    __
+#           __       __     \_\  __          __   \_\  __   __       __
+#           \_\     /_/        \/_/         /_/      \/_/   \_\     /_/
+#         .-.  \.-./  .-.   .-./  .-.   .-./  .-.   .-\   .-.  \.-./  .-.
+# `.     //-\\_//-\\_//-\\_//-\\_//-\\_//-\\_// \\_//-\\_//-\\_//-\\_//-\\
+# . `.__//   '-'   '-'\  '-'   '-'  /'-'   '-'\__'-'   '-'__/'-'   '-'\__
+#  `.___/              \__       __/\          \_\       /_/           \_\
+#                       \_\     /_/  \__
+#                                     \_\
