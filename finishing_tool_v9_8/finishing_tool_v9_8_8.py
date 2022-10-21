@@ -870,13 +870,13 @@ def calc_metrics():
 			write("Calculating Length field for {0}".format(fc))
 			with ap.da.UpdateCursor(fc, ['LZN', 'SHAPE@'], where_scale) as ucursor:
 				for urow in ucursor:
-					urow[0] = int(round(urow[-1].getLength('PRESERVE_SHAPE')))
+					urow[0] = round(urow[-1].getLength('PRESERVE_SHAPE'))
 					ucursor.updateRow(urow)
 		elif 'Polygon' in shape_type:
 			write("Calculating Area field for {0}".format(fc))
 			with ap.da.UpdateCursor(fc, ['ARA', 'SHAPE@'], where_scale) as ucursor:
 				for urow in ucursor:
-					urow[0] = int(round(urow[-1].getArea('PRESERVE_SHAPE')))
+					urow[0] = round(urow[-1].getArea('PRESERVE_SHAPE'))
 					ucursor.updateRow(urow)
 	greentext("{0} finished in {1}".format(tool_names.metrics, runtime(metrics_start)))
 

@@ -1,6 +1,11 @@
 Finishing Tool Suite Changelog
 For version 9.7+
 
+v9.8.8
+2022-10-18
+  - Fixed integer overflow error with area metric calculations for surfaces. Of course the get 
+    that big.
+
 v9.8.7
 2022-10-11
   - Added Partition Cores option for choosing how to partition large dataset to allow for 
