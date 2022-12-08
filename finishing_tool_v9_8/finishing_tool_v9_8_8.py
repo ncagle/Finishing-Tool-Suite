@@ -66,14 +66,14 @@ ad = imp.load_source('arc_dict', r"Q:\Special_Projects\4_Finishing\Post Producti
 ╚══════════════════════════════╝
 
 Major Divider
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 Intermediate Divider
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 Minor Divider
-#-----------------------------------
+# -----------------------------------
 
 Active Construction Zone
 # !_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!_!‾!
@@ -91,9 +91,9 @@ Subsection Title
 # ~~~~ #
 
 Task variables for Royal Decree results summary
-#~~~~~ Royal Decree Variables ~~~~~
+# ~~~~~ Royal Decree Variables ~~~~~
 result_or_count = defined
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Priority target for updating
 ####################################
@@ -104,18 +104,7 @@ Found a bug
  '-.__.-'
  /oo |--.--,--,--.
  \_.-'._i__i__i_.'
-	   """""""""
-
-Crevasse
-A deep crack in ice.
-Crevice
-A narrow opening in rock.
-
-Style Breakdown
-
-	asdf
-	example as needed
-
+       """""""""
 
 '''
 
@@ -135,6 +124,10 @@ Style Breakdown
   - Rewrite Calculate Metrics with manual calculations. Defense mapping tool takes too long and crashes.
   - Test rewritten Find Identical code and replace existing
 
+Crevasse
+A deep crack in ice.
+Crevice
+A narrow opening in rock.
 
 ## Recent Changes
 Version 9.7
@@ -285,8 +278,6 @@ Version 9.8.7
 
 
 v9.7-v9.8.7: 123 updates
-
-
 
 
 '''
